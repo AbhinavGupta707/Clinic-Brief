@@ -49,14 +49,16 @@ Phase 5: verification and merge readiness.
 
 ## Recommended Parallel Cold-Session Prompts
 
-Start these only after the foundation branch has created the repo, package scripts, shared contracts, and first commit. Each session should run in its own Codex worktree. Do not run these in parallel against the same Local checkout.
+Start these only after the foundation branch has created the repo, package scripts, shared contracts, and first commit. Each session should run in its own Codex worktree or dedicated branch. Do not run these in parallel against the same Local checkout. If launching from Codex mobile and you cannot explicitly choose a worktree, the first instruction in each prompt tells Codex to create/switch to its own branch before editing.
 
 ### Session 1. Demo Product Path
 
 ```text
 /goal Build the ClinicBrief synthetic pre-op demo into a polished end-to-end judge path.
 
-First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this worktree only. Do not touch Fireworks, Supabase, Novus installation, or deep document parsing unless needed for the demo fallback.
+Before editing, make sure this session is isolated from other parallel sessions. If you are not already in a Codex worktree, create/switch to a dedicated branch named `agent/demo-product-path` from `main`, then work only there. Do not edit `main` directly.
+
+First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this isolated worktree/branch only. Do not touch Fireworks, Supabase, Novus installation, or deep document parsing unless needed for the demo fallback.
 
 Own these areas:
 - /demo/preop
@@ -94,7 +96,9 @@ The fixture demo path is end-to-end usable and the checks above have run. Final 
 ```text
 /goal Build ClinicBrief's real intake, extraction, and fact-review foundation.
 
-First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this worktree only. Do not redesign the whole demo path; integrate with existing contracts and fixture fallback.
+Before editing, make sure this session is isolated from other parallel sessions. If you are not already in a Codex worktree, create/switch to a dedicated branch named `agent/intake-extraction-review` from `main`, then work only there. Do not edit `main` directly.
+
+First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this isolated worktree/branch only. Do not redesign the whole demo path; integrate with existing contracts and fixture fallback.
 
 Own these areas:
 - /cases/new
@@ -135,7 +139,9 @@ The intake -> extraction -> review skeleton is functional enough for integration
 ```text
 /goal Build ClinicBrief's output, privacy, analytics, and submission-readiness layer.
 
-First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this worktree only. Do not rebuild intake/extraction unless required to connect output flows.
+Before editing, make sure this session is isolated from other parallel sessions. If you are not already in a Codex worktree, create/switch to a dedicated branch named `agent/outputs-privacy-submission` from `main`, then work only there. Do not edit `main` directly.
+
+First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this isolated worktree/branch only. Do not rebuild intake/extraction unless required to connect output flows.
 
 Own these areas:
 - /cases/[caseId]/brief
