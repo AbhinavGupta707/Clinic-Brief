@@ -1,0 +1,67 @@
+import Link from "next/link";
+import { ArrowRight, FileText, ShieldCheck, Stethoscope } from "lucide-react";
+import { SafetyDisclaimer } from "../components/safety-disclaimer";
+
+export default function HomePage() {
+  return (
+    <main id="main-content" className="min-h-screen bg-clinic-surface">
+      <section className="mx-auto grid w-[min(100%-2rem,72rem)] gap-10 py-[var(--section-y)]">
+        <nav aria-label="Primary" className="flex items-center justify-between">
+          <span className="text-lg font-semibold text-clinic-ink">ClinicBrief</span>
+          <Link className="rounded-md px-3 py-2 text-sm font-medium text-clinic-ink hover:bg-white" href="/privacy">
+            Privacy
+          </Link>
+        </nav>
+
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div className="grid gap-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.08em] text-clinic-primary">
+              Patient-controlled appointment prep
+            </p>
+            <h1 className="max-w-4xl text-4xl font-semibold tracking-normal text-clinic-ink md:text-6xl">
+              Tell your health story once. Bring the right version to every appointment.
+            </h1>
+            <p className="max-w-2xl text-lg leading-8 text-clinic-muted">
+              ClinicBrief turns scattered notes, documents, medication lists, and appointment context into a clear brief you can review before sharing.
+            </p>
+            <SafetyDisclaimer />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+                href="/demo/preop"
+              >
+                Try sample pre-op case <ArrowRight size={18} aria-hidden />
+              </Link>
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
+                href="/cases/new"
+              >
+                Create my brief
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+            <div className="grid gap-4">
+              {[
+                { icon: FileText, title: "Messy inputs", body: "Upload or paste notes, letters, medication lists, and appointment details." },
+                { icon: ShieldCheck, title: "Patient review", body: "Every extracted fact keeps confidence, source, and edit controls." },
+                { icon: Stethoscope, title: "Appointment-ready", body: "Generate a concise brief, handoff card, and rehearsal questions." }
+              ].map((item) => (
+                <div key={item.title} className="grid grid-cols-[44px_1fr] gap-3 rounded-md border border-cyan-100 p-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-md bg-clinic-surface text-clinic-primary">
+                    <item.icon size={22} aria-hidden />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-clinic-ink">{item.title}</h2>
+                    <p className="mt-1 text-sm leading-6 text-clinic-muted">{item.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}

@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PatientCase {
+  id              String              @id @default(cuid())
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  title           String
+  mode            CaseMode
+  status          CaseStatus          @default(CREATED)
+  consentedAt     DateTime?
+  anonymousUserId String?
+  documents       HealthDocument[]
+  facts           ExtractedFact[]
+  timeline        TimelineEvent[]
+  medications     Medication[]
+  symptoms        SymptomLog[]
+  appointments    Appointment[]
+  briefs          AppointmentBrief[]
+  rehearsals      RehearsalSession[]
+  events          EventLog[]
+}
+
+enum CaseMode {
+  PREOP
+  CHRONIC
+  CARER
+  GENERAL
+}
+
+enum CaseStatus {
+  CREATED
+  CONSENTED
+  INTAKE_STARTED
+  EXTRACTED
+  REVIEWED
+  BRIEF_GENERATED
+  EXPORTED
+  DELETED
+}
+
+model HealthDocument {
+  id         String       @id @default(cuid())
+  caseId     String
+  case       PatientCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type       DocumentType
+  fileName   String
+  fileUrl    String?
+  rawText    String?
+  sourceHash String?
+  createdAt  DateTime     @default(now())
+}
+
+enum DocumentType {
+  PDF
+  IMAGE
+  TEXT_NOTE
+  VOICE_TRANSCRIPT
+  SAMPLE
+}
+
+model ExtractedFact {
+  id          String       @id @default(cuid())
+  caseId      String
+  case        PatientCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  sourceDocId String?
+  category    FactCategory
+  value       Json
+  confidence  Float
+  userStatus  ReviewStatus @default(UNREVIEWED)
+  createdAt   DateTime     @default(now())
+}
+
+enum FactCategory {
+  MEDICATION
+  ALLERGY
+  SYMPTOM
+  APPOINTMENT
+  TEST_RESULT
+  PROCEDURE
+  HISTORY_ITEM
+  QUESTION
+  CONTACT
+}
+
+enum ReviewStatus {
+  UNREVIEWED
+  CONFIRMED
+  EDITED
+  REJECTED
+}
+
+model TimelineEvent {
+  id              String            @id @default(cuid())
+  caseId          String
+  case            PatientCase       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  date            DateTime?
+  approximateDate String?
+  type            TimelineEventType
+  title           String
+  description     String
+  sourceFactIds   Json?
+  createdAt       DateTime          @default(now())
+}
+
+enum TimelineEventType {
+  SYMPTOM_CHANGE
+  MEDICATION_CHANGE
+  APPOINTMENT
+  TEST
+  PROCEDURE
+  NOTE
+}
+
+model Medication {
+  id            String      @id @default(cuid())
+  caseId        String
+  case          PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  name          String
+  dose          String?
+  frequency     String?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        String?
+  sourceFactIds Json?
+}
+
+model SymptomLog {
+  id       String      @id @default(cuid())
+  caseId   String
+  case     PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  symptom  String
+  date     DateTime?
+  severity Int?
+  notes    String?
+}
+
+model Appointment {
+  id        String      @id @default(cuid())
+  caseId    String
+  case      PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  date      DateTime?
+  type      String
+  clinician String?
+  goal      String?
+  questions Json?
+}
+
+model AppointmentBrief {
+  id        String      @id @default(cuid())
+  caseId    String
+  case      PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  briefType BriefType
+  title     String
+  briefJson Json
+  markdown  String
+  pdfUrl    String?
+  createdAt DateTime    @default(now())
+}
+
+enum BriefType {
+  GP
+  CONSULTANT
+  PREOP
+  FAMILY_HANDOFF
+  NINETY_SECOND_STORY
+}
+
+model RehearsalSession {
+  id        String      @id @default(cuid())
+  caseId    String
+  case      PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  mode      String
+  messages  Json
+  createdAt DateTime    @default(now())
+}
+
+model EventLog {
+  id        String       @id @default(cuid())
+  caseId    String?
+  case      PatientCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  name      String
+  props     Json?
+  createdAt DateTime     @default(now())
+}

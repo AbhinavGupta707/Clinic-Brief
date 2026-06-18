@@ -1,0 +1,17 @@
+{
+  "name": "@clinicbrief/db",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "DATABASE_URL=postgresql://clinicbrief:clinicbrief@localhost:5432/clinicbrief prisma validate --schema prisma/schema.prisma",
+    "lint": "DATABASE_URL=postgresql://clinicbrief:clinicbrief@localhost:5432/clinicbrief prisma validate --schema prisma/schema.prisma",
+    "typecheck": "DATABASE_URL=postgresql://clinicbrief:clinicbrief@localhost:5432/clinicbrief prisma validate --schema prisma/schema.prisma",
+    "test": "DATABASE_URL=postgresql://clinicbrief:clinicbrief@localhost:5432/clinicbrief prisma validate --schema prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.1.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.1.0"
+  }
+}
