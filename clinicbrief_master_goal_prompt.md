@@ -47,50 +47,129 @@ Phase 5: verification and merge readiness.
 - Finish only when the demo path is usable and the final handoff clearly states what is done and what remains.
 ```
 
-## Parallel Cold-Session Prompts
+## Recommended Parallel Cold-Session Prompts
 
-Start these only after the foundation branch has created the repo, package scripts, shared contracts, and first commit. Each session should run in its own branch or Codex worktree.
+Start these only after the foundation branch has created the repo, package scripts, shared contracts, and first commit. Each session should run in its own Codex worktree. Do not run these in parallel against the same Local checkout.
 
-### A. Foundation And Safety
+### Session 1. Demo Product Path
 
 ```text
-Read AGENTS.md, clinicbrief_agent_source_of_truth.md, and clinicbrief_build_ready_spec.md. Own branch agent/clinic-foundation. Create the ClinicBrief monorepo/app foundation: Next.js App Router, TypeScript, Tailwind, shadcn/ui-ready structure, pnpm workspace, Prisma schema, shared types, AI Zod schemas, safety guardrail utilities, event names/filtering, placeholder routes, .env.example, and README quickstart. Do not implement deep feature UI beyond placeholders. Run pnpm install, lint, typecheck, and build if possible. Final handoff must list commands run, failures, and contracts other agents can rely on.
+/goal Build the ClinicBrief synthetic pre-op demo into a polished end-to-end judge path.
+
+First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this worktree only. Do not touch Fireworks, Supabase, Novus installation, or deep document parsing unless needed for the demo fallback.
+
+Own these areas:
+- /demo/preop
+- /cases/sample-preop/review
+- /cases/sample-preop/timeline
+- /cases/sample-preop/brief
+- /cases/sample-preop/rehearsal
+- /cases/sample-preop/export
+- fixture-backed UI components needed by those routes
+
+Product goal:
+Make a judge understand ClinicBrief in under 2 minutes using only synthetic data: scattered documents -> extracted facts -> editable review -> timeline -> missing questions -> one-page brief -> rehearsal -> export fallback.
+
+UI direction:
+Use docs/ui-design-brief.md. Product screens are the visual asset. Build real-looking document cards, confidence/source chips, timeline rows, brief preview, and rehearsal panel. Use Lucide icons where useful. Avoid generic AI dashboard styling, purple gradients, decorative orbs, and stock medical photos.
+
+Done means:
+- The demo path is clickable from the landing page and visually coherent.
+- It uses only synthetic fixture data.
+- Required safety copy appears on landing/demo/brief/export surfaces.
+- At least 5 missing-context questions are visible.
+- Review shows editable-looking fact cards with confidence and source provenance.
+- Timeline shows chronological events and a "what changed since last appointment" section.
+- Brief page shows one-page pre-op brief, 90-second story, and clinician questions.
+- Rehearsal page asks one safe appointment-prep question at a time using fixture context.
+- Export page provides PDF/Markdown fallback UI, even if actual PDF generation is left to another session.
+- pnpm build, pnpm typecheck, pnpm lint, and pnpm test pass, or blockers are documented with exact error output.
+
+Stop when:
+The fixture demo path is end-to-end usable and the checks above have run. Final handoff: changed files, what works, commands run, skipped checks, risks, and merge notes.
 ```
 
-### B. Fixtures And Demo
+### Session 2. Intake, Extraction, Review
 
 ```text
-Read AGENTS.md, clinicbrief_agent_source_of_truth.md, and clinicbrief_build_ready_spec.md. Own branch agent/clinic-fixtures-demo. Build only the synthetic pre-op fixture package and /demo/preop happy path using no real patient data. Include text fixture documents, expected facts, expected timeline, expected brief, deterministic loader, and UI that can show sample extraction/review/brief states without external APIs. Run relevant checks and hand off exact integration points.
+/goal Build ClinicBrief's real intake, extraction, and fact-review foundation.
+
+First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this worktree only. Do not redesign the whole demo path; integrate with existing contracts and fixture fallback.
+
+Own these areas:
+- /cases/new
+- /cases/[caseId]/intake
+- /cases/[caseId]/review
+- /api/cases*
+- /api/cases/:id/documents equivalent route handlers
+- /api/cases/:id/extract equivalent route handlers
+- packages/documents
+- packages/ai extraction/provider/schemas/safety
+
+Product goal:
+Make real-user intake credible while keeping demo deterministic. Users must consent, add text/PDF/image notes, see parsed/source previews, run safe extraction when Fireworks is configured, and fall back to fixtures when it is not.
+
+Guardrails:
+- No diagnosis, treatment recommendations, medication advice, emergency triage, or clinical risk scoring.
+- All AI calls go through packages/ai/provider.ts.
+- All AI JSON is validated with Zod and retries once on validation failure.
+- Analytics events must never include raw medical text, medication names, symptom names, source quotes, file names, or free-text narratives.
+- PDF/OCR/speech failures must offer manual text fallback.
+
+Done means:
+- Consent is required before creating/uploading case data.
+- Text note intake works locally without external services.
+- PDF/image parsing boundaries exist with manual fallback states.
+- Source preview data shape supports source id, type, snippet, confidence, and document linkage.
+- Extraction endpoint returns validated facts/questions from Fireworks if configured and deterministic fixture fallback otherwise.
+- Review UI supports confirm/edit/reject states at least at UI/data-contract level.
+- Safety refusal utility is used for prohibited medical-advice prompts.
+- pnpm build, pnpm typecheck, pnpm lint, and pnpm test pass, or blockers are documented with exact error output.
+
+Stop when:
+The intake -> extraction -> review skeleton is functional enough for integration with the demo path. Final handoff: changed files, API contracts, env vars needed, commands run, skipped checks, risks, and merge notes.
 ```
 
-### C. Intake And Parsing
+### Session 3. Outputs, Privacy, Analytics, Submission
 
 ```text
-Read AGENTS.md, clinicbrief_agent_source_of_truth.md, and clinicbrief_build_ready_spec.md. Own branch agent/clinic-intake-parser. Implement consent-gated case intake, text paste, PDF upload/text extraction, image upload with manual fallback, optional browser speech-to-text note input, document source preview, and storage/data abstractions that match the shared contracts. Do not send raw medical content to analytics. Run relevant checks and include merge notes.
-```
+/goal Build ClinicBrief's output, privacy, analytics, and submission-readiness layer.
 
-### D. Extraction And Review
+First read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, and docs/ui-design-brief.md. Work in this worktree only. Do not rebuild intake/extraction unless required to connect output flows.
 
-```text
-Read AGENTS.md, clinicbrief_agent_source_of_truth.md, and clinicbrief_build_ready_spec.md. Own branch agent/clinic-extraction-review. Implement Fireworks-backed extraction through packages/ai/provider.ts, strict Zod schemas, retry-on-validation-error, missing question generation, safe refusal behavior, extraction API, and editable fact review cards with confidence and source provenance. Include deterministic fixture fallback. Run schema/safety tests and relevant app checks.
-```
+Own these areas:
+- /cases/[caseId]/brief
+- /cases/[caseId]/rehearsal
+- /cases/[caseId]/export
+- /cases/[caseId]/settings
+- /privacy
+- /novus-proof
+- packages/exports
+- packages/events
+- docs/demo-script.md
+- Devpost/submission docs
 
-### E. Timeline And Brief
+Product goal:
+Make ClinicBrief feel submission-ready: safe brief generation, handoff card, 90-second story, appointment rehearsal, export fallback, delete-all-data flow, Novus-safe analytics proof, and submission copy.
 
-```text
-Read AGENTS.md, clinicbrief_agent_source_of_truth.md, and clinicbrief_build_ready_spec.md. Own branch agent/clinic-timeline-brief. Implement timeline rebuild, filters, what-changed-since-last-appointment, brief modes, one-page appointment brief, 90-second story, family/carer handoff, source coverage, and required disclaimer. Use confirmed facts and fixture fallback. No diagnosis or treatment recommendations. Run relevant checks.
-```
+Guardrails:
+- No diagnosis, treatment recommendations, medication advice, emergency triage, or clinical risk scoring.
+- Rehearsal asks one appointment-prep question at a time and redirects medical-advice requests.
+- Exported/visible briefs must include the required disclaimer.
+- Novus/Pendo event props may include mode, counts, confidence bands, and brief type only; never raw medical text or identifiers.
+- Delete flow must remove or consistently mark case rows/files as deleted.
 
-### F. Rehearsal And Export
+Done means:
+- Brief modes exist for GP, consultant, pre-op nurse, family/carer handoff, and 90-second story at UI/data-contract level.
+- Brief and export pages provide readable Markdown/PDF fallback output.
+- Rehearsal flow has safe mocked or real chat behavior and optional speech UI only with typed fallback.
+- Privacy/settings/delete pages are complete enough for a judge demo.
+- /novus-proof explains event coverage and shows sanitized event examples.
+- Demo script and Devpost draft exist.
+- pnpm build, pnpm typecheck, pnpm lint, and pnpm test pass, or blockers are documented with exact error output.
 
-```text
-Read AGENTS.md, clinicbrief_agent_source_of_truth.md, and clinicbrief_build_ready_spec.md. Own branch agent/clinic-rehearsal-export. Implement appointment rehearsal chat with one-question-at-a-time behavior, safe refusal/redirect for medical advice requests, optional speech input with typed fallback, brief/handoff PDF export, Markdown fallback, copy/download actions, and export page. Run relevant checks and a demo smoke if possible.
-```
-
-### G. Privacy, Delete, Novus, Submission
-
-```text
-Read AGENTS.md, clinicbrief_agent_source_of_truth.md, and clinicbrief_build_ready_spec.md. Own branch agent/clinic-privacy-analytics. Implement privacy page, settings/delete-all-data flow, consent audit display, Novus/Pendo event wrapper, forbidden analytics property filtering, event calls across the funnel, /novus-proof, and submission-readiness docs including demo script and Devpost description draft. Never include raw medical data in event properties. Run relevant checks.
+Stop when:
+The output/privacy/submission layer is coherent and ready for integration. Final handoff: changed files, commands run, skipped checks, risks, and merge notes.
 ```
 
 ## Integration Agent Prompt
@@ -98,5 +177,22 @@ Read AGENTS.md, clinicbrief_agent_source_of_truth.md, and clinicbrief_build_read
 Use this after workstreams finish.
 
 ```text
-Read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, and every workstream handoff. Merge branches in dependency order: foundation, fixtures/demo, intake/parser, extraction/review, timeline/brief, rehearsal/export, privacy/analytics. After each merge, inspect conflicts, preserve shared contracts, run the most relevant checks, and commit a clean integration step. Diagnose missing features in layer order before debugging runtime. Finish with a full acceptance run against the hackathon definition of done and a concise list of any remaining manual deployment or credential tasks.
+/goal Integrate the ClinicBrief workstreams and reach hackathon demo readiness.
+
+Read AGENTS.md, clinicbrief_agent_source_of_truth.md, clinicbrief_build_ready_spec.md, clinicbrief_master_goal_prompt.md, docs/ui-design-brief.md, and every workstream handoff. Merge completed branches/worktrees in this order: Session 1 demo path, Session 2 intake/extraction/review, Session 3 output/privacy/analytics. After each merge, inspect conflicts, preserve shared contracts, run pnpm build, pnpm typecheck, pnpm lint, and pnpm test, then commit a clean integration step.
+
+Acceptance path:
+- / loads and explains the product with required safety copy.
+- /demo/preop starts a synthetic sample case.
+- Review shows editable facts with confidence and source provenance.
+- Timeline shows chronological story and what changed.
+- Brief shows one-page pre-op brief, handoff/90-second story, questions, uncertainties, and disclaimer.
+- Rehearsal asks safe appointment-prep questions and refuses medical advice.
+- Export provides PDF or Markdown fallback.
+- Settings/delete flow works or is clearly mocked with correct API boundary.
+- /privacy and /novus-proof are judge-ready.
+- Analytics proof shows no raw medical content.
+
+Stop when:
+The deployed-demo candidate is integrated, checks have run after the final merge, and the final handoff lists exact remaining manual tasks for Vercel, Supabase/Fireworks env vars, Novus screenshot, and Devpost submission.
 ```
