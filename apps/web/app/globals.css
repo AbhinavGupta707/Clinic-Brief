@@ -45,3 +45,24 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+@page {
+  margin: 18mm;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  header,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .clinic-print-page {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}
