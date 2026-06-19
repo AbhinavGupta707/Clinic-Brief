@@ -20,6 +20,7 @@ export function NewCaseForm() {
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,11 +33,16 @@ export function NewCaseForm() {
 
     try {
       setIsSubmitting(true);
+      setStatus("Creating your private case...");
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 15000);
       const response = await fetch("/api/cases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, mode, consent })
+        body: JSON.stringify({ title, mode, consent }),
+        signal: controller.signal
       });
+      window.clearTimeout(timeoutId);
       const payload = (await response.json().catch(() => ({
         ok: false,
         error: { message: "The case service returned an unreadable response." }
@@ -47,11 +53,19 @@ export function NewCaseForm() {
         return;
       }
 
+      setStatus("Opening intake...");
       trackEvent(Events.ConsentAccepted, { mode });
       trackEvent(Events.CaseCreated, { mode });
-      router.push(`/cases/${payload.data.caseId}/intake`);
-    } catch {
-      setError("Could not create the case yet. Check the deployment configuration and try again.");
+      const intakeUrl = `/cases/${payload.data.caseId}/intake`;
+      router.push(intakeUrl);
+      window.setTimeout(() => {
+        if (window.location.pathname !== intakeUrl) {
+          window.location.assign(intakeUrl);
+        }
+      }, 400);
+    } catch (caughtError) {
+      setStatus(null);
+      setError(caughtError instanceof DOMException && caughtError.name === "AbortError" ? "Creating the case took too long. Refresh and try again, or use the sample demo while the live service warms up." : "Could not create the case yet. Check the deployment configuration and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -87,6 +101,7 @@ export function NewCaseForm() {
         </span>
       </label>
       {error ? <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-clinic-warning">{error}</p> : null}
+      {status ? <p className="text-sm font-medium text-clinic-muted" role="status">{status}</p> : null}
       <button
         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={isSubmitting}
