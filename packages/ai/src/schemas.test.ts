@@ -15,10 +15,12 @@ describe("AI extraction contracts", () => {
           sourceQuote: "knee pain after walking"
         }
       ],
-      questions: []
+      questions: [],
+      allowedCategories: ["SYMPTOM"]
     });
 
     expect(parsed.facts[0]?.sourceDocId).toBe("doc-source-1");
+    expect(parsed).not.toHaveProperty("allowedCategories");
   });
 
   it("redirects prohibited medical advice requests", () => {

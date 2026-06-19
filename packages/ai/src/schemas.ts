@@ -64,7 +64,7 @@ export const RehearsalAgentOutputSchema = z.object({
 export const ExtractionResultSchema = z.object({
   facts: z.array(ExtractedFactSchema),
   questions: z.array(MissingQuestionSchema)
-}).strict();
+});
 
 export type ExtractedFactInput = z.infer<typeof ExtractedFactSchema>;
 export type ExtractionResult = z.infer<typeof ExtractionResultSchema>;

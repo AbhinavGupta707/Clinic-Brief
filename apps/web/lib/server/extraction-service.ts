@@ -153,9 +153,43 @@ function normalizeAiExtraction(caseId: string, sourceDocuments: SourceDocument[]
 function buildExtractionUserPrompt(documents: SourceDocument[]): string {
   return JSON.stringify({
     task: "Extract appointment-preparation facts only. Do not diagnose, recommend treatment, advise medication changes, assess urgency, or infer facts not present in the sources.",
-    requiredShape: {
-      facts: "Array of sourceDocId, category, displayText, value, confidence, sourceQuote. sourceQuote should be a short exact quote from the source text.",
-      questions: "Array of missing-context questions for appointment preparation"
+    outputContract:
+      "Return JSON with exactly { facts: [...], questions: [...] }. Do not include this contract, allowed values, or documents in the response.",
+    factContract: {
+      sourceDocId: "Must exactly match one provided document id.",
+      category: "One of MEDICATION, ALLERGY, SYMPTOM, APPOINTMENT, TEST_RESULT, PROCEDURE, HISTORY_ITEM, QUESTION, CONTACT.",
+      displayText: "Short appointment-preparation fact stated by the source.",
+      value: "Object such as { text: string }. Never a string.",
+      confidence: "Number from 0 to 1. Never high/medium/low text.",
+      sourceQuote: "Short exact quote copied from the matching source document."
+    },
+    questionContract: {
+      id: "Stable id like q-1.",
+      priority: "One of low, medium, high.",
+      question: "One appointment-preparation question.",
+      whyItMattersForAppointment: "Why this helps the user prepare for the appointment.",
+      answerType: "One of short_text, date, yes_no, medication, allergy."
+    },
+    example: {
+      facts: [
+        {
+          sourceDocId: "doc-example",
+          category: "MEDICATION",
+          displayText: "Source mentions an inhaler before exercise.",
+          value: { text: "inhaler before exercise" },
+          confidence: 0.86,
+          sourceQuote: "inhaler before exercise"
+        }
+      ],
+      questions: [
+        {
+          id: "q-1",
+          priority: "high",
+          question: "Which documents do you want to bring to the appointment?",
+          whyItMattersForAppointment: "Documents help the user keep appointment preparation organized.",
+          answerType: "short_text"
+        }
+      ]
     },
     documents: documents.map((document) => ({
       id: document.id,

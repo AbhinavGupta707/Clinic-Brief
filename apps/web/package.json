@@ -16,6 +16,7 @@
     "@clinicbrief/exports": "workspace:*",
     "@clinicbrief/fixtures": "workspace:*",
     "@clinicbrief/types": "workspace:*",
+    "@prisma/client": "^6.19.3",
     "@react-pdf/renderer": "^4.1.6",
     "lucide-react": "^0.468.0",
     "next": "^15.1.3",
