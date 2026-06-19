@@ -30,23 +30,31 @@ export function NewCaseForm() {
       return;
     }
 
-    setIsSubmitting(true);
-    const response = await fetch("/api/cases/new", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, mode, consent })
-    });
-    const payload = (await response.json()) as ApiResponse<CreateCaseResponse>;
-    setIsSubmitting(false);
+    try {
+      setIsSubmitting(true);
+      const response = await fetch("/api/cases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, mode, consent })
+      });
+      const payload = (await response.json().catch(() => ({
+        ok: false,
+        error: { message: "The case service returned an unreadable response." }
+      }))) as ApiResponse<CreateCaseResponse>;
 
-    if (!payload.ok || !payload.data) {
-      setError(payload.error?.message ?? "Could not create the case yet.");
-      return;
+      if (!response.ok || !payload.ok || !payload.data) {
+        setError(payload.error?.message ?? "Could not create the case yet.");
+        return;
+      }
+
+      trackEvent(Events.ConsentAccepted, { mode });
+      trackEvent(Events.CaseCreated, { mode });
+      router.push(`/cases/${payload.data.caseId}/intake`);
+    } catch {
+      setError("Could not create the case yet. Check the deployment configuration and try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    trackEvent(Events.ConsentAccepted, { mode });
-    trackEvent(Events.CaseCreated, { mode });
-    router.push(`/cases/${payload.data.caseId}/intake`);
   }
 
   return (
