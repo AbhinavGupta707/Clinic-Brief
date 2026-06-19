@@ -9,6 +9,10 @@ import { useEffect, useState } from "react";
 export function IntakeClient({ caseId }: { caseId: string }) {
   const router = useRouter();
   const [noteText, setNoteText] = useState("");
+  const [medicationName, setMedicationName] = useState("");
+  const [medicationDetails, setMedicationDetails] = useState("");
+  const [symptomText, setSymptomText] = useState("");
+  const [symptomContext, setSymptomContext] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [manualFallbackText, setManualFallbackText] = useState("");
   const [sourcePreviews, setSourcePreviews] = useState<SourcePreview[]>([]);
@@ -38,6 +42,40 @@ export function IntakeClient({ caseId }: { caseId: string }) {
       fileName: "manual-note.txt"
     });
     setNoteText("");
+  }
+
+  async function addMedicationEntry(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!medicationName.trim()) {
+      setStatus("Add a medication or supplement name before saving this entry.");
+      return;
+    }
+
+    await addDocument({
+      type: "TEXT_NOTE",
+      fileName: "manual-medication-entry.txt",
+      text: `Manual medication or supplement entry: ${medicationName.trim()}. Details for appointment preparation: ${medicationDetails.trim() || "not provided."}`
+    });
+    setMedicationName("");
+    setMedicationDetails("");
+  }
+
+  async function addSymptomEntry(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!symptomText.trim()) {
+      setStatus("Add a symptom or history item before saving this entry.");
+      return;
+    }
+
+    await addDocument({
+      type: "TEXT_NOTE",
+      fileName: "manual-symptom-entry.txt",
+      text: `Manual symptom or history entry: ${symptomText.trim()}. Timing/context for appointment preparation: ${symptomContext.trim() || "not provided."}`
+    });
+    setSymptomText("");
+    setSymptomContext("");
   }
 
   async function uploadFile(event: React.FormEvent<HTMLFormElement>) {
@@ -173,6 +211,66 @@ export function IntakeClient({ caseId }: { caseId: string }) {
           <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50 disabled:opacity-60" disabled={isAdding} type="submit">
             <Image aria-hidden className="h-5 w-5" />
             Add file source
+          </button>
+        </form>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <form onSubmit={addMedicationEntry} className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+          <div>
+            <h2 className="text-lg font-semibold text-clinic-ink">Medication or supplement</h2>
+            <p className="mt-1 text-sm leading-6 text-clinic-muted">Add what you want to remember to tell the clinician. ClinicBrief will not suggest changes.</p>
+          </div>
+          <label className="grid gap-2 text-sm font-medium text-clinic-ink">
+            Name
+            <input
+              className="min-h-11 rounded-md border border-clinic-line px-3 text-base text-clinic-ink"
+              onChange={(event) => setMedicationName(event.target.value)}
+              placeholder="Example: inhaler, pain relief, supplement"
+              value={medicationName}
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-medium text-clinic-ink">
+            Details to ask or confirm
+            <textarea
+              className="min-h-24 rounded-md border border-clinic-line p-3 text-base leading-7 text-clinic-ink"
+              onChange={(event) => setMedicationDetails(event.target.value)}
+              placeholder="Dose/frequency as written on the label, last-taken timing to confirm, or uncertainty to mention."
+              value={medicationDetails}
+            />
+          </label>
+          <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50 disabled:opacity-60" disabled={isAdding} type="submit">
+            <FileText aria-hidden className="h-5 w-5" />
+            Add medication note
+          </button>
+        </form>
+
+        <form onSubmit={addSymptomEntry} className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+          <div>
+            <h2 className="text-lg font-semibold text-clinic-ink">Symptom or history item</h2>
+            <p className="mt-1 text-sm leading-6 text-clinic-muted">Capture what changed, when it happened, and what you want to explain. This is organization only.</p>
+          </div>
+          <label className="grid gap-2 text-sm font-medium text-clinic-ink">
+            What to mention
+            <input
+              className="min-h-11 rounded-md border border-clinic-line px-3 text-base text-clinic-ink"
+              onChange={(event) => setSymptomText(event.target.value)}
+              placeholder="Example: pain pattern, previous reaction, support concern"
+              value={symptomText}
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-medium text-clinic-ink">
+            Timing or context
+            <textarea
+              className="min-h-24 rounded-md border border-clinic-line p-3 text-base leading-7 text-clinic-ink"
+              onChange={(event) => setSymptomContext(event.target.value)}
+              placeholder="When it started, what changed since the last appointment, or what you want to ask."
+              value={symptomContext}
+            />
+          </label>
+          <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50 disabled:opacity-60" disabled={isAdding} type="submit">
+            <FileText aria-hidden className="h-5 w-5" />
+            Add history note
           </button>
         </form>
       </div>

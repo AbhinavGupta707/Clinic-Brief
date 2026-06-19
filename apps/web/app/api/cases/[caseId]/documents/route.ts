@@ -2,6 +2,7 @@ import { createSourceSnippet, parseImageBuffer, parsePdfBuffer, parseTextNote } 
 import type { AddDocumentResponse, ApiResponse, DocumentType, ListDocumentsResponse } from "@clinicbrief/types";
 import { z } from "zod";
 import { getClinicRepository, makeSourcePreview } from "../../../../../lib/server/clinic-repository";
+import { hashText, savePrivateFile } from "../../../../../lib/server/private-storage";
 
 const JsonDocumentSchema = z.object({
   type: z.enum(["PDF", "IMAGE", "TEXT_NOTE", "VOICE_TRANSCRIPT"]),
@@ -53,12 +54,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
 
   const parsed = await parseDocumentPayload(payload.data);
   const now = new Date().toISOString();
+  const storage = payload.data.fileBuffer
+    ? await savePrivateFile({
+        caseId,
+        fileName: payload.data.fileName,
+        contentType: payload.data.contentType ?? "application/octet-stream",
+        bytes: payload.data.fileBuffer
+      })
+    : null;
+  const rawText = parsed.text || payload.data.fallbackText || undefined;
   const document = {
     id: crypto.randomUUID(),
     caseId,
     type: payload.data.type,
     fileName: payload.data.fileName,
-    rawText: parsed.text || payload.data.fallbackText || undefined,
+    fileUrl: storage?.fileUrl,
+    rawText,
+    sourceHash: storage?.sourceHash ?? (rawText ? hashText(rawText) : undefined),
     createdAt: now
   };
   const sourcePreview = makeSourcePreview({
@@ -88,7 +100,8 @@ type DocumentPayload =
         fileName: string;
         text?: string;
         fallbackText?: string;
-        file?: File;
+        fileBuffer?: ArrayBuffer;
+        contentType?: string;
       };
     }
   | { success: false; message: string };
@@ -115,7 +128,8 @@ async function readDocumentPayload(request: Request): Promise<DocumentPayload> {
         fileName: file instanceof File && file.name ? file.name : inferredType === "TEXT_NOTE" ? "manual-note.txt" : "uploaded-document",
         text,
         fallbackText,
-        file: file instanceof File ? file : undefined
+        fileBuffer: file instanceof File ? await file.arrayBuffer() : undefined,
+        contentType: file instanceof File ? file.type : undefined
       }
     };
   }
@@ -147,10 +161,10 @@ async function parseDocumentPayload(payload: Extract<DocumentPayload, { success:
   }
 
   if (payload.type === "PDF") {
-    return parsePdfBuffer(payload.file ? await payload.file.arrayBuffer() : new ArrayBuffer(0));
+    return parsePdfBuffer(payload.fileBuffer ?? new ArrayBuffer(0));
   }
 
-  return parseImageBuffer(payload.file ? await payload.file.arrayBuffer() : new ArrayBuffer(0));
+  return parseImageBuffer(payload.fileBuffer ?? new ArrayBuffer(0));
 }
 
 function inferDocumentType(file: File | null, declaredType?: string): Exclude<DocumentType, "SAMPLE"> | null {

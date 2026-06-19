@@ -130,7 +130,17 @@ importers:
         version: 5.9.3
 
   packages/documents:
+    dependencies:
+      pdf-parse:
+        specifier: ^1.1.1
+        version: 1.1.4
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.21
+      '@types/pdf-parse':
+        specifier: ^1.1.4
+        version: 1.1.5
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
