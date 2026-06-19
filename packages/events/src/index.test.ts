@@ -35,6 +35,7 @@ describe("sanitizeEventProps", () => {
 
   it("validates registered event names", () => {
     expect(isClinicEventName(Events.BriefGenerated)).toBe(true);
+    expect(isClinicEventName(Events.ReadbackStarted)).toBe(true);
     expect(isClinicEventName("raw_health_text_sent")).toBe(false);
   });
 });

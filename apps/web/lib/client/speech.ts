@@ -108,6 +108,83 @@ export function useBrowserSpeechToText({ onTranscript }: { onTranscript: (text: 
   };
 }
 
+export function getBrowserTextToSpeechCapability(): BrowserSpeechCapability {
+  if (typeof window === "undefined") {
+    return "unknown";
+  }
+
+  return "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined" ? "supported" : "unsupported";
+}
+
+export function useBrowserTextToSpeech() {
+  const [capability, setCapability] = useState<BrowserSpeechCapability>("unknown");
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => {
+    setCapability(getBrowserTextToSpeechCapability());
+
+    return () => {
+      window.speechSynthesis?.cancel();
+      utteranceRef.current = null;
+    };
+  }, []);
+
+  const stopSpeaking = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    utteranceRef.current = null;
+    setIsSpeaking(false);
+  }, []);
+
+  const startSpeaking = useCallback((text: string) => {
+    setError(null);
+
+    if (getBrowserTextToSpeechCapability() !== "supported") {
+      setCapability("unsupported");
+      setError("Read-back is not available in this browser. The written story is still available.");
+      return false;
+    }
+
+    const cleanText = text.trim();
+
+    if (!cleanText) {
+      setError("There is no story text to read back yet.");
+      return false;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = navigator.language || "en-GB";
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+    utterance.onend = () => {
+      utteranceRef.current = null;
+      setIsSpeaking(false);
+    };
+    utterance.onerror = () => {
+      utteranceRef.current = null;
+      setIsSpeaking(false);
+      setError("Read-back stopped. The written story is still available.");
+    };
+
+    utteranceRef.current = utterance;
+    setCapability("supported");
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+    return true;
+  }, []);
+
+  return {
+    capability,
+    error,
+    isSpeaking,
+    startSpeaking,
+    stopSpeaking
+  };
+}
+
 function getSpeechRecognitionConstructor(): ClinicSpeechRecognitionConstructor | undefined {
   if (typeof window === "undefined") {
     return undefined;

@@ -1,8 +1,9 @@
-import { buildBriefFromReviewedFacts, buildExportBundle, generateBriefPdf } from "@clinicbrief/exports";
+import { buildBriefFromReviewedFacts, buildExportBundle, generateBriefPdf, includeReviewedPatternCardsInBrief } from "@clinicbrief/exports";
 import type { ApiResponse, AppointmentBrief, BriefType } from "@clinicbrief/types";
 import { z } from "zod";
 
 import { getClinicRepository } from "../../../../../lib/server/clinic-repository";
+import { listPatternCards } from "../../../../../lib/server/pattern-service";
 
 export const runtime = "nodejs";
 
@@ -54,6 +55,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     );
   }
 
+  const patternCards = listPatternCards(record);
   const savedBrief = record.briefs.find((item) => item.briefType === briefType);
   const brief =
     savedBrief ??
@@ -62,21 +64,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       caseId,
       briefType,
       title: briefType,
-      briefJson: buildBriefFromReviewedFacts({
-        caseTitle: record.title,
-        briefType,
-        facts: record.facts,
-        questions: record.questions,
-        timeline: record.timeline,
-        sourcePreviews: record.sourcePreviews
-      }),
+      briefJson: includeReviewedPatternCardsInBrief(
+        buildBriefFromReviewedFacts({
+          caseTitle: record.title,
+          caseMode: record.mode,
+          briefType,
+          facts: record.facts,
+          questions: record.questions,
+          timeline: record.timeline,
+          sourcePreviews: record.sourcePreviews,
+          patternCards
+        }),
+        patternCards
+      ),
       markdown: "",
       createdAt: new Date().toISOString()
     } satisfies AppointmentBrief);
-  const bundle = buildExportBundle(brief.briefJson, briefType);
+  const briefJson = includeReviewedPatternCardsInBrief(brief.briefJson, patternCards);
+  const bundle = buildExportBundle(briefJson, briefType);
 
   try {
-    const pdfBuffer = await generateBriefPdf(brief.briefJson, briefType);
+    const pdfBuffer = await generateBriefPdf(briefJson, briefType);
 
     return new Response(pdfBuffer, {
       headers: {

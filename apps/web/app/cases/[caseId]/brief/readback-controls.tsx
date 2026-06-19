@@ -1,0 +1,46 @@
+"use client";
+
+import { Square, Volume2 } from "lucide-react";
+import { Events, trackEvent } from "@clinicbrief/events";
+import type { BriefType, CaseMode } from "@clinicbrief/types";
+import { useBrowserTextToSpeech } from "../../../../lib/client/speech";
+
+export function BriefReadbackControls({ briefType, mode, text }: { briefType: BriefType; mode: CaseMode; text: string }) {
+  const { capability, error, isSpeaking, startSpeaking, stopSpeaking } = useBrowserTextToSpeech();
+
+  function handleToggle() {
+    if (isSpeaking) {
+      stopSpeaking();
+      return;
+    }
+
+    if (startSpeaking(text)) {
+      trackEvent(Events.ReadbackStarted, { mode, briefType });
+    }
+  }
+
+  return (
+    <section className="print:hidden rounded-md border border-clinic-line bg-clinic-surface p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-semibold text-clinic-ink">Read-back</h2>
+          <p className="mt-1 text-sm leading-6 text-clinic-muted">
+            Browser speech only. No audio is uploaded or stored by ClinicBrief.
+          </p>
+        </div>
+        <button
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          disabled={capability === "unsupported"}
+          onClick={handleToggle}
+          type="button"
+        >
+          {isSpeaking ? <Square size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}
+          {isSpeaking ? "Stop" : "Read story"}
+        </button>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-clinic-muted" role="status">
+        {error ?? (capability === "unsupported" ? "Read-back is unavailable in this browser." : isSpeaking ? "Reading the story aloud." : "Ready to read the story aloud.")}
+      </p>
+    </section>
+  );
+}

@@ -12,6 +12,7 @@ export const Events = {
   BriefGenerated: "brief_generated",
   RehearsalStarted: "rehearsal_started",
   RehearsalMessageSent: "rehearsal_message_sent",
+  ReadbackStarted: "readback_started",
   PdfExported: "pdf_exported",
   CaseDeleted: "case_deleted"
 } as const;
@@ -131,6 +132,11 @@ export const novusEventCoverage = [
     event: Events.RehearsalMessageSent,
     purpose: "Rehearsal engagement counted without message text",
     safeProps: sanitizeEventProps({ mode: "PREOP", questionCount: 5, answeredQuestionCount: 1 })
+  },
+  {
+    event: Events.ReadbackStarted,
+    purpose: "Browser read-back started without sending story text or audio",
+    safeProps: sanitizeEventProps({ mode: "PREOP", briefType: "PREOP" })
   },
   {
     event: Events.CaseDeleted,
