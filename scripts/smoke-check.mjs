@@ -277,11 +277,15 @@ async function runFullProductSmoke(options) {
     });
     assert(/cannot|can't|appointment preparation/i.test(unsafeRehearsal.assistantMessage), "Unsafe rehearsal was not redirected to safe appointment preparation.");
 
-    const exportResponse = await postJson(baseUrl, `/api/cases/${caseId}/export`, {
+    const exportResponse = await postExport(baseUrl, `/api/cases/${caseId}/export`, {
       briefType: "PREOP"
     });
-    assert(exportResponse.bundle.pdfFallback.method === "browser_print", "Export did not expose the browser print PDF fallback.");
-    assert(exportResponse.bundle.markdown.includes("ClinicBrief organizes information"), "Export markdown did not include the safety disclaimer.");
+    if (exportResponse.pdfGenerated) {
+      assert(exportResponse.byteLength > 1000, "Server PDF export returned an unexpectedly small PDF.");
+    } else {
+      assert(exportResponse.bundle.pdfFallback.method === "browser_print", "Export did not expose the browser print PDF fallback.");
+      assert(exportResponse.bundle.markdown.includes("ClinicBrief organizes information"), "Export markdown did not include the safety disclaimer.");
+    }
 
     const analytics = await postJson(baseUrl, "/api/events", {
       name: "rehearsal_message_sent",
@@ -438,6 +442,37 @@ async function postJson(baseUrl, path, body) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body)
   }).then((response) => response.data);
+}
+
+async function postExport(baseUrl, path, body) {
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (response.ok && contentType.includes("application/pdf")) {
+    const buffer = await response.arrayBuffer();
+    return {
+      pdfGenerated: true,
+      byteLength: buffer.byteLength
+    };
+  }
+
+  const text = await response.text();
+  const json = parseJson(text, path);
+
+  if (!response.ok || json.ok === false) {
+    const code = json.error?.code ? ` (${json.error.code})` : "";
+    const message = json.error?.message ? `: ${json.error.message}` : "";
+    throw new Error(`POST ${path} failed with status ${response.status}${code}${message}`);
+  }
+
+  return {
+    ...json.data,
+    pdfGenerated: false
+  };
 }
 
 async function patchJson(baseUrl, path, body) {
