@@ -21,6 +21,26 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/clinicbrief
 
 `supabase` and `postgres` are accepted aliases for the Prisma-backed repository. The adapter is shaped around the Prisma schema in `packages/db/prisma/schema.prisma`; production use still needs migration/generation in the target environment.
 
+## Prisma Commands
+
+Prisma client generation is wired for both local installs and Vercel:
+
+```bash
+pnpm db:generate
+pnpm db:validate
+```
+
+The root `postinstall` runs `pnpm --filter @clinicbrief/db db:generate` so `@prisma/client` is generated during dependency installation. `db:generate` and `db:validate` use a synthetic local Postgres URL only when `DATABASE_URL` is absent, so normal build/test does not require database credentials.
+
+Use a real Supabase/Postgres connection string for schema application:
+
+```bash
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/clinicbrief pnpm db:push
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/clinicbrief pnpm db:migrate
+```
+
+`db:push` is the hackathon-friendly command for quickly shaping a fresh database. `db:migrate` runs `prisma migrate deploy` for environments that already have migrations available.
+
 ## Repository Surface
 
 The stable server contract lives in `apps/web/lib/server/clinic-repository` and covers:
@@ -46,9 +66,13 @@ The synthetic `sample-preop` case is always available as a read-only fixture sna
 
 ```bash
 pnpm install
+pnpm db:validate
 pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
+pnpm smoke:db
 python3 /Users/abhinavgupta/.codex/skills/webdesign/scripts/website_quality_audit.py /Users/abhinavgupta/Desktop/Mind\ Prod/Clinic\ Brief/apps/web
 ```
+
+`pnpm smoke:db` exits successfully without `DATABASE_URL` and reports that the live Prisma/Postgres smoke was skipped. When `DATABASE_URL` is set, it generates Prisma client code and creates, reads, updates, and deletes a synthetic case through Prisma, including `PatientCase`, `HealthDocument`, `SourcePreview`, `ExtractedFact`, `MissingQuestion`, `TimelineEvent`, `AppointmentBrief`, and `RehearsalSession` rows. The smoke data is synthetic and is deleted at the end of the run.
