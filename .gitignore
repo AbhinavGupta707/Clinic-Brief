@@ -9,5 +9,6 @@ coverage
 .vercel
 .env
 .env.local
+*-vercel.env
 .DS_Store
 *.tsbuildinfo
