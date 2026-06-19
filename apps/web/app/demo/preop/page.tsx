@@ -60,6 +60,18 @@ export default function PreopDemoPage() {
         <Link className="inline-flex min-h-11 items-center justify-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/cases/sample-preop/brief">
           Open brief
         </Link>
+        <Link className="rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/cases/sample-preop/rehearsal">
+          Rehearse
+        </Link>
+        <Link className="rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/cases/sample-preop/export">
+          Export
+        </Link>
+        <Link className="rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/cases/sample-preop/settings">
+          Privacy controls
+        </Link>
+        <Link className="rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/novus-proof">
+          Novus proof
+        </Link>
       </div>
     </AppShell>
   );
