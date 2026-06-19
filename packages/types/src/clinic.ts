@@ -1,6 +1,9 @@
 import type { ClinicBriefOutput, MissingQuestion } from "./extraction";
+import type { CaseDashboardState, HealthDocumentMetadata, PatternCard } from "./live-flow";
 
-export type CaseMode = "PREOP" | "CHRONIC" | "CARER" | "GENERAL";
+export const CASE_MODES = ["PREOP", "CHRONIC", "CARER", "GENERAL"] as const;
+
+export type CaseMode = (typeof CASE_MODES)[number];
 
 export type CaseStatus =
   | "CREATED"
@@ -50,6 +53,7 @@ export type HealthDocument = {
   fileUrl?: string;
   rawText?: string;
   sourceHash?: string;
+  metadata?: HealthDocumentMetadata;
   createdAt: string;
 };
 
@@ -62,6 +66,7 @@ export type SourcePreview = {
   confidence: number;
   parser: "pdf" | "image" | "text" | "fixture";
   needsManualFallback: boolean;
+  metadata?: HealthDocumentMetadata;
   createdAt: string;
 };
 
@@ -159,6 +164,8 @@ export type ClinicCaseSnapshot = PatientCase & {
   appointments: Appointment[];
   briefs: AppointmentBrief[];
   rehearsals: RehearsalSession[];
+  patternCards?: PatternCard[];
+  dashboardState?: CaseDashboardState;
   deletedAt?: string;
 };
 
