@@ -87,6 +87,7 @@ export type RehearsalMessageResponse = {
   sessionId: string;
   session: RehearsalSession;
   assistantMessage: string;
+  blocked?: boolean;
   suggestedFactUpdates?: RehearsalSuggestedFactUpdate[];
 };
 

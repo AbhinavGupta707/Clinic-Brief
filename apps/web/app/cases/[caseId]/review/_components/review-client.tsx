@@ -14,6 +14,7 @@ export function ReviewClient({ caseId }: { caseId: string }) {
   const [editingFactId, setEditingFactId] = useState<string | null>(null);
   const [draftText, setDraftText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingFactId, setPendingFactId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadExtraction();
@@ -66,20 +67,25 @@ export function ReviewClient({ caseId }: { caseId: string }) {
       userStatus
     };
 
+    setPendingFactId(fact.id);
     setFacts((current) => current.map((item) => (item.id === fact.id ? nextFact : item)));
     setEditingFactId(null);
     setDraftText("");
 
-    const response = await fetch(`/api/cases/${caseId}/facts/${fact.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ displayText, userStatus })
-    });
-    const payload = (await response.json().catch(() => null)) as ApiResponse<UpdateFactResponse> | null;
+    try {
+      const response = await fetch(`/api/cases/${caseId}/facts/${fact.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayText, userStatus })
+      });
+      const payload = (await response.json().catch(() => null)) as ApiResponse<UpdateFactResponse> | null;
 
-    if (payload?.ok && payload.data) {
-      const updated = payload.data.fact;
-      setFacts((current) => current.map((item) => (item.id === fact.id ? updated : item)));
+      if (payload?.ok && payload.data) {
+        const updated = payload.data.fact;
+        setFacts((current) => current.map((item) => (item.id === fact.id ? updated : item)));
+      }
+    } finally {
+      setPendingFactId(null);
     }
 
     if (userStatus === "CONFIRMED") {
@@ -150,17 +156,27 @@ export function ReviewClient({ caseId }: { caseId: string }) {
                 </button>
               ) : (
                 <>
-                  <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-4 py-2 font-semibold text-white hover:bg-emerald-700" onClick={() => updateFactState(fact, "CONFIRMED")} type="button">
+                  <button
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={pendingFactId === fact.id || fact.userStatus === "CONFIRMED"}
+                    onClick={() => updateFactState(fact, "CONFIRMED")}
+                    type="button"
+                  >
                     <Check aria-hidden className="h-5 w-5" />
-                    Confirm
+                    {fact.userStatus === "CONFIRMED" ? "Confirmed" : "Confirm"}
                   </button>
                   <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50" onClick={() => startEdit(fact)} type="button">
                     <Pencil aria-hidden className="h-5 w-5" />
                     Edit
                   </button>
-                  <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-rose-200 bg-white px-4 py-2 font-semibold text-rose-700 hover:bg-rose-50" onClick={() => updateFactState(fact, "REJECTED")} type="button">
+                  <button
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md border border-rose-200 bg-white px-4 py-2 font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={pendingFactId === fact.id || fact.userStatus === "REJECTED"}
+                    onClick={() => updateFactState(fact, "REJECTED")}
+                    type="button"
+                  >
                     <X aria-hidden className="h-5 w-5" />
-                    Reject
+                    {fact.userStatus === "REJECTED" ? "Rejected" : "Reject"}
                   </button>
                 </>
               )}

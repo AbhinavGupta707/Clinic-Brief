@@ -8,6 +8,7 @@ import type { ApiResponse, BriefType, MissingQuestion, RehearsalMessageResponse,
 type Message = {
   role: "assistant" | "user";
   body: string;
+  blocked?: boolean;
 };
 
 type SpeechRecognitionEventLike = {
@@ -67,7 +68,7 @@ export function RehearsalClient({
     }
   ]);
 
-  const answeredCount = useMemo(() => messages.filter((message) => message.role === "user").length, [messages]);
+  const answeredCount = useMemo(() => countAnsweredQuestions(messages), [messages]);
 
   useEffect(() => {
     setSpeechSupported(Boolean(window.SpeechRecognition ?? window.webkitSpeechRecognition));
@@ -96,10 +97,11 @@ export function RehearsalClient({
 
     if (payload?.ok && payload.data) {
       const mappedMessages = mapSessionMessages(payload.data.session);
-      const nextAnsweredCount = mappedMessages.filter((message) => message.role === "user").length;
+      const nextMessages = markLatestUserMessageBlocked(mappedMessages, payload.data.blocked === true);
+      const nextAnsweredCount = countAnsweredQuestions(nextMessages);
 
       setSessionId(payload.data.sessionId);
-      setMessages(mappedMessages);
+      setMessages(nextMessages);
       setCurrentQuestionIndex(Math.min(nextAnsweredCount, questions.length));
     } else {
       setMessages((items) => [
@@ -117,7 +119,7 @@ export function RehearsalClient({
       mode: "PREOP",
       briefType,
       questionCount: questions.length,
-      answeredQuestionCount: answeredCount + 1
+      answeredQuestionCount: answeredCount + (payload?.data?.blocked ? 0 : 1)
     });
   }
 
@@ -264,10 +266,43 @@ function rehearsalModeForBrief(briefType: BriefType): "PREOP_NURSE" | "CONSULTAN
 }
 
 function mapSessionMessages(session: RehearsalSession): Message[] {
-  return session.messages
+  const mappedMessages = session.messages
     .filter((message): message is RehearsalSession["messages"][number] & { role: Message["role"] } => message.role === "assistant" || message.role === "user")
     .map((message) => ({
       role: message.role,
       body: message.content
     }));
+
+  return mappedMessages.map((message, index) =>
+    message.role === "user" && isSafetyRedirectMessage(mappedMessages[index + 1]) ? { ...message, blocked: true } : message
+  );
+}
+
+function markLatestUserMessageBlocked(messages: Message[], blocked: boolean): Message[] {
+  if (!blocked) {
+    return messages;
+  }
+
+  let lastUserIndex = -1;
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") {
+      lastUserIndex = index;
+      break;
+    }
+  }
+
+  if (lastUserIndex === -1) {
+    return messages;
+  }
+
+  return messages.map((message, index) => (index === lastUserIndex ? { ...message, blocked: true } : message));
+}
+
+function countAnsweredQuestions(messages: Message[]): number {
+  return messages.filter((message) => message.role === "user" && !message.blocked).length;
+}
+
+function isSafetyRedirectMessage(message: Message | undefined): boolean {
+  return message?.role === "assistant" && message.body.includes("I cannot diagnose or recommend treatment");
 }

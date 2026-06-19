@@ -65,7 +65,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       data: {
         sessionId: updatedSession.id,
         session: updatedSession,
-        assistantMessage
+        assistantMessage,
+        blocked: false
       }
     } satisfies ApiResponse<RehearsalMessageResponse>);
   }
@@ -80,6 +81,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       sessionId: withAssistant.id,
       session: withAssistant,
       assistantMessage: reply.assistantMessage,
+      blocked: reply.blocked,
       suggestedFactUpdates: reply.suggestedFactUpdates
     }
   } satisfies ApiResponse<RehearsalMessageResponse>);
