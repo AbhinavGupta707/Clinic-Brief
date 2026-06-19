@@ -31,7 +31,7 @@ export function NewCaseForm() {
     }
 
     setIsSubmitting(true);
-    const response = await fetch("/api/cases", {
+    const response = await fetch("/api/cases/new", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, mode, consent })

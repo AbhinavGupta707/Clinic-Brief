@@ -14,6 +14,8 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
+If port `3000` is already in use, Next.js will choose the next available local port.
+
 ## Repository Shape
 
 ```txt
@@ -53,3 +55,7 @@ pnpm build
 ```
 
 The scaffold includes deterministic fixture fallbacks so the demo path can work before Fireworks, Supabase, or Novus credentials are wired.
+
+## Final Integration
+
+See `docs/final-integration-handoff.md` for the current demo-ready status, verified checks, smoke-tested paths, and remaining manual submission tasks.
