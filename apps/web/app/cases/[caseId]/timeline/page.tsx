@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/app-shell";
 import { Chip, DemoCta, DemoFlowNav, SectionHeader } from "../../../../components/demo/demo-case-components";
 import { getClinicRepository } from "../../../../lib/server/clinic-repository";
+import { listPatternCards } from "../../../../lib/server/pattern-service";
+import { PatternReviewPanel } from "./pattern-review-panel";
 import { TimelineFilterList } from "./timeline-filter-list";
 
 export default async function TimelinePage({ params }: { params: Promise<{ caseId: string }> }) {
@@ -24,6 +26,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ caseI
     sourcePreviews: record.sourcePreviews
   });
   const isDemoCase = caseId === "sample-preop";
+  const patternCards = listPatternCards(record);
 
   return (
     <AppShell eyebrow={`Case ${caseId}`} title="Timeline">
@@ -41,6 +44,8 @@ export default async function TimelinePage({ params }: { params: Promise<{ caseI
         </section>
 
         <aside className="grid content-start gap-4">
+          <PatternReviewPanel caseId={caseId} initialPatternCards={patternCards} />
+
           <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
             <div className="flex flex-wrap items-center gap-2">
               <Chip tone="primary">What changed</Chip>

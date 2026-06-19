@@ -1,5 +1,6 @@
 import { buildBriefFromReviewedFacts, buildTimelineFromReviewedFacts, getFactsForGeneratedOutputs } from "@clinicbrief/exports";
 import type { BriefType, CaseDashboardState, CaseDashboardWorkflowItem, ClinicCaseSnapshot, DashboardWorkflowState, ExtractedFact, TimelineEvent } from "@clinicbrief/types";
+import { listPatternCards } from "../../../lib/server/pattern-service";
 
 export function buildCaseDashboardState(record: ClinicCaseSnapshot): CaseDashboardState {
   const timeline = getDashboardTimeline(record);
@@ -17,7 +18,7 @@ export function buildCaseDashboardState(record: ClinicCaseSnapshot): CaseDashboa
   const usableFacts = getFactsForGeneratedOutputs(record.facts);
   const reviewedFacts = record.facts.filter((fact) => fact.userStatus === "CONFIRMED" || fact.userStatus === "EDITED");
   const factsNeedingReview = record.facts.filter((fact) => fact.userStatus === "UNREVIEWED").length;
-  const reviewedPatterns = record.patternCards?.filter((card) => card.userStatus === "CONFIRMED" || card.userStatus === "EDITED").length ?? 0;
+  const reviewedPatterns = listPatternCards(record).filter((card) => card.userStatus === "CONFIRMED" || card.userStatus === "EDITED").length;
   const hasSources = record.documents.length > 0 || record.sourcePreviews.length > 0;
   const hasFacts = record.facts.length > 0;
   const hasReviewedFacts = reviewedFacts.length > 0;
