@@ -2,79 +2,117 @@
 
 ## Current Status
 
-Prompt 7 main integration is complete. `main` now contains Prompt 5 and Prompt 6 full functionality.
+Prompt 8-9 submission and production readiness is complete on branch `agent/submission-production-readiness` in worktree `.worktrees/submission-production-readiness`.
 
-Integration details:
+ClinicBrief is deployable for the Mind the Product / Novus submission with the default memory backend. The branch keeps the synthetic demo and real-case fallback working without Supabase, Fireworks, or Novus credentials.
 
-- Source branch: `agent/full-functionality-sequential`
-- Merge style: fast-forward into `main`
-- Prompt 6 source worktree: `.worktrees/full-functionality-sequential`
-- Prompt 6 base: `agent/product-data-foundation`
+## What Changed In Prompt 8-9
 
-Prompt 6 commits:
+- Added `docs/deployment-novus-readiness.md` with Vercel settings, minimum demo env, optional production env, Novus install steps, Session Replay privacy settings, AI Agent Tracking limits, persistence/storage decision record, and PDF/OCR decision record.
+- Updated `README.md` with Vercel deployment settings and Novus eligibility notes.
+- Added `NEXT_PUBLIC_PENDO_API_KEY` as a safe placeholder in `.env.example`.
+- Hardened `packages/events` so prompt, response, message, and transcript properties are filtered before analytics.
+- Added optional `window.pendo.track(eventName, safeProps)` forwarding after sanitization only. If no Novus/Pendo snippet exists, events still post only to `/api/events` for local proof.
+- Updated `/novus-proof` to show accurate install status, dashboard privacy requirements, and a screenshot placeholder.
+- Updated `/privacy` to state Session Replay maximum privacy and rehearsal AI Agent Tracking limits.
+- Polished `docs/devpost-submission-draft.md` and `docs/demo-script.md` with public URL and Novus screenshot placeholders, concise demo flow, product positioning, tools used, learnings, safety, and privacy copy.
 
-- `917cb25 Productize document intake and storage boundary`
-- `f9c784e Productize extraction and fact review`
-- `e3cd0b3 Generate timelines and briefs from reviewed facts`
-- `403ef54 Productize rehearsal and export flows`
+## Deployment Readiness
 
-`main` keeps the synthetic demo working without credentials and adds a memory-backed real case path shaped around the Prompt 5 repository boundary.
+Vercel settings documented in `docs/deployment-novus-readiness.md`:
 
-## What Works
+- Root directory: `apps/web`
+- Framework preset: Next.js
+- Install command: `pnpm install --frozen-lockfile`
+- Build command: `pnpm build`
+- Node.js: 20.x or newer
 
-- Landing and synthetic pre-op demo routes still load without credentials.
-- Consent-gated real case creation works through `POST /api/cases`.
-- Document intake supports text notes, PDF text extraction when selectable text is available, PDF/image manual fallback, source previews, source hashing, and private local memory storage fallback.
-- Extraction runs through `packages/ai/provider.ts` when `FIREWORKS_API_KEY` and `FIREWORKS_MODEL` are set.
-- Without Fireworks credentials, deterministic fallback extracts source-linked facts from the user's provided text instead of inventing synthetic facts for real cases.
-- Review reads and writes persisted confirm/edit/reject states.
-- `POST /api/cases/:caseId/timeline/rebuild` persists timeline events from confirmed, edited, and high-confidence unrejected facts.
-- `POST /api/cases/:caseId/briefs` persists GP, consultant, pre-op nurse, family/carer handoff, and 90-second story brief variants.
-- Brief and timeline pages render repository-backed real cases, while preserving the synthetic demo path.
-- `POST /api/cases/:caseId/rehearsal` persists rehearsal sessions/messages, asks one safe question at a time, redirects unsafe medical-advice prompts, and returns review-gated suggested updates.
-- `POST /api/cases/:caseId/export` returns an export bundle from persisted brief state with Markdown plus browser print/save-as-PDF fallback.
-- Analytics sanitization remains enforced through `packages/events`; raw health content, file names, identifiers, medication names, and symptom names are dropped.
-- Delete returns a receipt and cleans private memory file fallback state.
+Minimum demo env:
 
-## Environment Variables
+```bash
+CLINICBRIEF_DATA_BACKEND=memory
+NEXT_PUBLIC_APP_URL=https://YOUR-VERCEL-URL
+```
 
-Required for local fixture/memory fallback:
+No Supabase, Fireworks, or Novus credentials are required for local build or demo fallback.
 
-- None.
+## Novus Eligibility
 
-Optional AI extraction:
+Novus is not faked in this branch. No real Novus/Pendo credentials or dashboard-generated snippet were present locally:
 
-- `FIREWORKS_API_KEY`
-- `FIREWORKS_MODEL`
+- `NOVUS_API_KEY`: unset
+- `NEXT_PUBLIC_NOVUS_CLIENT_KEY`: unset
+- `NEXT_PUBLIC_PENDO_API_KEY`: unset
+- `NOVUS_SNIPPET`: unset
 
-Optional Prisma/Supabase-shaped backend:
+External step required:
 
-- `CLINICBRIEF_DATA_BACKEND=prisma`
-- `DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/clinicbrief`
+1. Open the Novus/Pendo dashboard and create/select the ClinicBrief web app.
+2. Use the official web JavaScript install flow for the deployed Vercel URL.
+3. Add the dashboard-generated snippet or real public key to Vercel.
+4. Initialize with an anonymous visitor id that is not a case id, email, file name, document name, or health-content-derived identifier.
+5. Set Session Replay to maximum privacy with all inputs and text masked.
+6. Keep AI Agent Tracking disabled for rehearsal unless prompts and responses are masked before capture.
+7. Run the deployed demo and capture the Novus dashboard screenshot.
 
-Default backend remains memory:
+`/novus-proof` remains accurate and documents the safe event contract.
 
-- `CLINICBRIEF_DATA_BACKEND=memory`
+## Persistence And Storage
+
+Live Supabase/Postgres persistence was not smoke-tested because no `DATABASE_URL` or Supabase credentials were available. The Prisma-shaped adapter remains documented and validated.
+
+Verified:
+
+- `@clinicbrief/db` Prisma schema validation passed.
+- Memory repository fallback passed case create, document, extraction, review, timeline, brief, rehearsal, and delete tests.
+- Private memory storage fallback passed save/delete/hash tests.
+- Real-case smoke deleted one private memory file via `DELETE /api/cases/:caseId`.
+
+Production storage is not faked. Supabase private storage remains a production TODO documented in `docs/deployment-novus-readiness.md`.
+
+## PDF And OCR
+
+Server-side PDF generation was not added because the browser print/save-as-PDF plus Markdown fallback is already verified and lower risk for submission. PDF intake supports selectable text extraction and honest manual fallback. OCR remains intentionally unimplemented; image/manual fallback is acceptable for this submission.
+
+Verified:
+
+- `@clinicbrief/exports` tests passed.
+- Real-case smoke returned `browser_print` PDF fallback plus Markdown containing the safety note.
 
 ## Verified Checks
 
-Run from repo root on `main`:
+Run from `.worktrees/submission-production-readiness` on June 19, 2026:
 
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
-python3 /Users/abhinavgupta/.codex/skills/webdesign/scripts/website_quality_audit.py '/Users/abhinavgupta/Desktop/Mind Prod/Clinic Brief/apps/web'
+python3 /Users/abhinavgupta/.codex/skills/webdesign/scripts/website_quality_audit.py '/Users/abhinavgupta/Desktop/Mind Prod/Clinic Brief/.worktrees/submission-production-readiness/apps/web'
 ```
 
-All passed on June 19, 2026 after merging to `main`.
+All passed.
 
 Website quality audit:
 
 - `P0=0 P1=0 P2=0`
 
+Additional targeted checks passed:
+
+- `pnpm --filter @clinicbrief/events test`
+- `pnpm --filter @clinicbrief/events typecheck`
+- `pnpm --filter @clinicbrief/web typecheck`
+- `pnpm --filter @clinicbrief/db test`
+- `pnpm --filter @clinicbrief/web test -- lib/server/private-storage.test.ts lib/server/clinic-repository/memory.test.ts`
+- `pnpm --filter @clinicbrief/exports test`
+
 ## Final Smoke Evidence
+
+Local server:
+
+```bash
+pnpm exec next dev --hostname 127.0.0.1 --port 3108
+```
 
 Synthetic/demo routes returned 200:
 
@@ -89,49 +127,55 @@ Synthetic/demo routes returned 200:
 - `/privacy`
 - `/novus-proof`
 
-Real memory-backed case smoke passed from `main` with case id `df53937d-f349-4165-842c-c741d0fcc2c4`:
+Real memory-backed case smoke passed with case id `3bfe2b55-b666-413b-b319-eedf9fbaa662`:
 
 - `POST /api/cases`
 - text note intake
 - PDF upload with manual fallback
-- `GET /api/cases/:caseId/documents`
-- fixture fallback extraction from source text
-- unsafe extraction safety redirect
-- confirm/edit/reject fact review
-- timeline rebuild with rejected fact excluded
-- persisted pre-op brief generation with disclaimer and rejected fact excluded
+- document/source preview list
+- fallback extraction from provided source text
+- unsafe extraction redirect
+- review confirm/edit/reject
+- timeline rebuild
+- pre-op brief generation with disclaimer
 - rehearsal session start
-- safe rehearsal answer with review-gated suggested update
-- unsafe rehearsal prompt redirected
+- safe rehearsal answer
+- unsafe rehearsal redirect
 - export bundle with `browser_print` PDF fallback and Markdown
-- `POST /api/events` dropped raw health props
-- real case `/review`, `/timeline`, `/brief`, `/rehearsal`, `/export` pages returned 200
-- `DELETE /api/cases/:caseId` returned deleted receipt and removed private memory file fallback
+- analytics sanitizer dropped raw health, medication, prompt, response, and case id properties
+- real case `/review`, `/timeline`, `/brief`, `/rehearsal`, `/export`, and `/settings` returned 200
+- `DELETE /api/cases/:caseId` returned deleted receipt and removed one private memory file
 
-## Known Risks
+Smoke result:
 
-- The production database adapter is Prisma/Supabase-shaped but not exercised against a live Supabase instance in this Prompt 6 run.
-- Private file storage is an in-memory local adapter unless production storage is wired later.
-- Image OCR remains an honest manual fallback; full OCR is intentionally not implemented.
-- PDF parsing works for selectable text but scanned PDFs still require manual fallback.
-- PDF export uses browser print/save-as-PDF plus Markdown. Server-rendered PDF generation remains a later hardening task.
-- Fireworks behavior is wired and schema-validated, but final acceptance used no Fireworks credentials.
-- Rehearsal suggested updates are review-gated and do not automatically mutate facts.
+```json
+{
+  "ok": true,
+  "caseId": "3bfe2b55-b666-413b-b319-eedf9fbaa662",
+  "publicRoutes": 10,
+  "realCasePages": 6,
+  "deletedFiles": 1
+}
+```
 
 ## Remaining Manual Submission Tasks
 
-1. Deploy `main` to Vercel and confirm the public URL.
-2. Add real Novus/Pendo install credentials/snippet if available.
-3. Capture the Novus dashboard screenshot.
-4. Record the under-3-minute demo video using `docs/demo-script.md`.
-5. Paste/update `docs/devpost-submission-draft.md` in Devpost.
-6. Optionally add real Supabase/Fireworks credentials. The demo and local real-case path work without them via memory and fixture/source-text fallback.
+1. Merge this branch to `main`.
+2. Deploy `main` to Vercel using the documented settings.
+3. Replace `https://YOUR-VERCEL-URL` placeholders in submission materials.
+4. Install the real Novus/Pendo dashboard snippet on the deployed URL.
+5. Configure Session Replay maximum privacy and keep rehearsal AI Agent Tracking disabled unless masked.
+6. Run the deployed demo and capture the Novus dashboard screenshot.
+7. Record the under-3-minute demo video using `docs/demo-script.md`.
+8. Paste `docs/devpost-submission-draft.md` into Devpost and attach the URL/screenshot/video.
 
-## Merge Notes
+## Known Risks
 
-- `agent/full-functionality-sequential` has been fast-forwarded into `main`.
-- `main` final checks and full smoke passed after the merge.
-- The isolated `.worktrees/` directory should not be deployed or committed.
+- Novus dashboard installation and screenshot require external account access.
+- Live Supabase/Postgres persistence requires credentials and a smoke-tested migration path.
+- Private Supabase Storage remains a documented production TODO.
+- Server-side PDF generation and OCR are intentionally deferred to keep the submission path stable.
+- Memory backend is prototype-only and should not be used for real patient data.
 
 ## Safety Boundary
 
