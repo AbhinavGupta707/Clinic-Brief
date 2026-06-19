@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
-import type { BriefType, ClinicBriefOutput, ExtractedFact, MissingQuestion, SourcePreview, TimelineEvent } from "@clinicbrief/types";
+import type { BriefType, CaseMode, ClinicBriefOutput, ExtractedFact, MissingQuestion, PatternCard, SourcePreview, TimelineEvent } from "@clinicbrief/types";
 
 export type BriefModeDefinition = {
   type: BriefType;
@@ -84,7 +84,12 @@ export function getBriefModeDefinition(briefType: BriefType): BriefModeDefinitio
 }
 
 export function getFactsForGeneratedOutputs(facts: ExtractedFact[]): ExtractedFact[] {
-  return facts.filter((fact) => fact.userStatus !== "REJECTED" && (fact.userStatus === "CONFIRMED" || fact.userStatus === "EDITED" || fact.confidence >= 0.8));
+  return facts.filter(
+    (fact) =>
+      !isPatternCardFact(fact) &&
+      fact.userStatus !== "REJECTED" &&
+      (fact.userStatus === "CONFIRMED" || fact.userStatus === "EDITED" || fact.confidence >= 0.8)
+  );
 }
 
 export function buildTimelineFromReviewedFacts(caseId: string, facts: ExtractedFact[]): TimelineEvent[] {
@@ -103,15 +108,18 @@ export function buildTimelineFromReviewedFacts(caseId: string, facts: ExtractedF
 
 export function buildBriefFromReviewedFacts(input: {
   caseTitle: string;
+  caseMode?: CaseMode;
   briefType: BriefType;
   facts: ExtractedFact[];
   questions: MissingQuestion[];
   timeline: TimelineEvent[];
   sourcePreviews: SourcePreview[];
   appointmentGoal?: string;
+  patternCards?: PatternCard[];
 }): ClinicBriefOutput {
   const facts = getFactsForGeneratedOutputs(input.facts);
   const timeline = input.timeline.length > 0 ? input.timeline : buildTimelineFromReviewedFacts("case", facts);
+  const reviewedPatternCards = getReviewedPatternCards(input.patternCards ?? []);
   const medicationFacts = facts.filter((fact) => fact.category === "MEDICATION");
   const allergyFacts = facts.filter((fact) => fact.category === "ALLERGY");
   const symptomFacts = facts.filter((fact) => fact.category === "SYMPTOM");
@@ -124,7 +132,11 @@ export function buildBriefFromReviewedFacts(input: {
   const openUncertainties = input.questions.slice(0, 6).map((question) => question.whyItMattersForAppointment);
   const storyFacts = facts.slice(0, 4).map((fact) => cleanDisplayText(fact.displayText));
 
-  return buildBriefVariant(
+  const patternNotes = reviewedPatternCards.map((card) => cleanDisplayText(card.reviewerEditedText ?? card.suggestedBriefText));
+  const chronicSections = input.caseMode === "CHRONIC" ? buildChronicSectionsFromFacts(facts, input.questions, input.appointmentGoal) : undefined;
+  const changedItems =
+    symptomFacts.length > 0 ? symptomFacts.map((fact) => cleanDisplayText(fact.displayText)) : facts.slice(0, 5).map((fact) => cleanDisplayText(fact.displayText));
+  const brief = buildBriefVariant(
     {
       title: modeTitles[input.briefType],
       oneLineReasonForVisit: input.appointmentGoal?.trim() || `${input.caseTitle}: appointment preparation from reviewed source information.`,
@@ -140,15 +152,32 @@ export function buildBriefFromReviewedFacts(input: {
         name: cleanDisplayText(fact.displayText),
         notes: sourceLabel(fact)
       })),
-      allergiesAndImportantNotes: [...allergyFacts, ...notableFacts].slice(0, 8).map((fact) => cleanDisplayText(fact.displayText)),
-      whatChangedSinceLastAppointment: symptomFacts.length > 0 ? symptomFacts.map((fact) => cleanDisplayText(fact.displayText)) : facts.slice(0, 5).map((fact) => cleanDisplayText(fact.displayText)),
+      allergiesAndImportantNotes: uniqueStrings([...allergyFacts, ...notableFacts].slice(0, 8).map((fact) => cleanDisplayText(fact.displayText))),
+      whatChangedSinceLastAppointment: uniqueStrings([
+        ...changedItems,
+        ...patternNotes.map((item) => `Reviewed pattern to discuss: ${item}`),
+        ...(chronicSections?.functionalImpact ?? []).map((item) => `Functional impact: ${item}`)
+      ]).slice(0, 12),
       questionsForClinician,
       openUncertainties: openUncertainties.length > 0 ? openUncertainties : ["Review any unconfirmed details before sharing this brief."],
-      sourceCoverage: buildSourceCoverage(facts, input.sourcePreviews, input.questions),
-      safetyDisclaimer: REQUIRED_SAFETY_DISCLAIMER
+      sourceCoverage: buildSourceCoverage(facts, input.sourcePreviews, input.questions, reviewedPatternCards, chronicSections),
+      safetyDisclaimer: REQUIRED_SAFETY_DISCLAIMER,
+      chronicSections
     },
     input.briefType
   );
+
+  return input.caseMode === "CHRONIC"
+    ? {
+        ...brief,
+        oneLineReasonForVisit: ensureIncludes(brief.oneLineReasonForVisit, "Chronic appointment preparation from reviewed information."),
+        allergiesAndImportantNotes: uniqueStrings([
+          ...(chronicSections?.reportedConfirmedHistory ?? []).map((item) => `Reported confirmed history: ${item}`),
+          ...(chronicSections?.conditionsBeingInvestigated ?? []).map((item) => `Being investigated or not yet confirmed: ${item}`),
+          ...brief.allergiesAndImportantNotes
+        ]).slice(0, 12)
+      }
+    : brief;
 }
 
 export function buildBriefVariant(brief: ClinicBriefOutput, briefType: BriefType): ClinicBriefOutput {
@@ -171,6 +200,25 @@ export function buildBriefVariant(brief: ClinicBriefOutput, briefType: BriefType
         ? ["Practice this script, then check the full brief for details before sharing.", ...brief.openUncertainties]
         : brief.openUncertainties,
     sourceCoverage: [{ section: definition.shortLabel, sourceCount: brief.sourceCoverage.length }, ...brief.sourceCoverage]
+  };
+}
+
+export function includeReviewedPatternCardsInBrief(brief: ClinicBriefOutput, patternCards: PatternCard[]): ClinicBriefOutput {
+  const reviewedPatternCards = getReviewedPatternCards(patternCards);
+
+  if (reviewedPatternCards.length === 0) {
+    return brief;
+  }
+
+  const patternNotes = reviewedPatternCards.map((card) => cleanDisplayText(card.reviewerEditedText ?? card.suggestedBriefText));
+
+  return {
+    ...brief,
+    whatChangedSinceLastAppointment: uniqueStrings([
+      ...brief.whatChangedSinceLastAppointment,
+      ...patternNotes.map((item) => `Reviewed pattern to discuss: ${item}`)
+    ]).slice(0, 12),
+    sourceCoverage: uniqueCoverage([...brief.sourceCoverage, { section: "Reviewed pattern cards", sourceCount: reviewedPatternCards.length }])
   };
 }
 
@@ -201,6 +249,23 @@ export function briefToMarkdown(brief: ClinicBriefOutput): string {
     "## What changed since last appointment",
     ...listItems(brief.whatChangedSinceLastAppointment, "No changes have been confirmed yet."),
     "",
+    ...(brief.chronicSections
+      ? [
+          "## Chronic appointment context",
+          ...listItems(
+            [
+              ...brief.chronicSections.reportedConfirmedHistory.map((item) => `Reported confirmed history: ${item}`),
+              ...brief.chronicSections.conditionsBeingInvestigated.map((item) => `Being investigated or not yet confirmed: ${item}`),
+              ...brief.chronicSections.baselineSymptomsAndFlares.map((item) => `Baseline, symptom, or flare detail: ${item}`),
+              ...brief.chronicSections.medicationAndTreatmentHistory.map((item) => `Medication or treatment history to review: ${item}`),
+              ...brief.chronicSections.functionalImpact.map((item) => `Functional impact: ${item}`),
+              ...brief.chronicSections.appointmentGoals.map((item) => `Appointment goal or question: ${item}`)
+            ],
+            "No chronic appointment context was confirmed yet."
+          ),
+          ""
+        ]
+      : []),
     "## Questions for clinician",
     ...listItems(brief.questionsForClinician, "No questions have been added yet."),
     "",
@@ -403,6 +468,21 @@ function createBriefPdfDocument(brief: ClinicBriefOutput, briefType: BriefType) 
             fallback: "No changes have been confirmed yet.",
             limit: 5
           }),
+          brief.chronicSections
+            ? createElement(PdfListSection, {
+                title: "Chronic appointment context",
+                items: [
+                  ...brief.chronicSections.reportedConfirmedHistory.map((item) => `Reported confirmed history: ${item}`),
+                  ...brief.chronicSections.conditionsBeingInvestigated.map((item) => `Being investigated or not yet confirmed: ${item}`),
+                  ...brief.chronicSections.baselineSymptomsAndFlares.map((item) => `Baseline, symptom, or flare detail: ${item}`),
+                  ...brief.chronicSections.medicationAndTreatmentHistory.map((item) => `Medication or treatment history to review: ${item}`),
+                  ...brief.chronicSections.functionalImpact.map((item) => `Functional impact: ${item}`),
+                  ...brief.chronicSections.appointmentGoals.map((item) => `Appointment goal or question: ${item}`)
+                ],
+                fallback: "No chronic appointment context was confirmed yet.",
+                limit: 6
+              })
+            : null,
           createElement(PdfListSection, {
             title: "Uncertainties",
             items: brief.openUncertainties,
@@ -463,14 +543,156 @@ function listItems(items: string[], fallback: string): string[] {
   return cleanItems.length > 0 ? cleanItems.map((item) => `- ${item}`) : [`- ${fallback}`];
 }
 
-function buildSourceCoverage(facts: ExtractedFact[], sourcePreviews: SourcePreview[], questions: MissingQuestion[]): ClinicBriefOutput["sourceCoverage"] {
+function buildSourceCoverage(
+  facts: ExtractedFact[],
+  sourcePreviews: SourcePreview[],
+  questions: MissingQuestion[],
+  reviewedPatternCards: PatternCard[],
+  chronicSections?: NonNullable<ClinicBriefOutput["chronicSections"]>
+): ClinicBriefOutput["sourceCoverage"] {
   const sourceIds = new Set(facts.map((fact) => fact.sourceDocId).filter(Boolean));
 
-  return [
+  return uniqueCoverage([
     { section: "Reviewed facts", sourceCount: facts.length },
     { section: "Source documents", sourceCount: sourceIds.size || sourcePreviews.length },
-    { section: "Open questions", sourceCount: questions.length }
-  ];
+    { section: "Open questions", sourceCount: questions.length },
+    { section: "Reviewed pattern cards", sourceCount: reviewedPatternCards.length },
+    ...(chronicSections ? [{ section: "Chronic reviewed sections", sourceCount: Object.values(chronicSections).reduce((sum, items) => sum + items.length, 0) }] : [])
+  ]);
+}
+
+function buildChronicSectionsFromFacts(
+  facts: ExtractedFact[],
+  questions: MissingQuestion[],
+  appointmentGoal?: string
+): NonNullable<ClinicBriefOutput["chronicSections"]> {
+  const sections: NonNullable<ClinicBriefOutput["chronicSections"]> = {
+    reportedConfirmedHistory: [],
+    conditionsBeingInvestigated: [],
+    baselineSymptomsAndFlares: [],
+    medicationAndTreatmentHistory: [],
+    functionalImpact: [],
+    appointmentGoals: appointmentGoal?.trim() ? [appointmentGoal.trim()] : []
+  };
+
+  for (const fact of facts) {
+    const text = cleanDisplayText(fact.displayText);
+    const chronicFieldId = typeof fact.value.chronicFieldId === "string" ? fact.value.chronicFieldId : inferChronicField(fact);
+
+    if (chronicFieldId === "reported_confirmed_history") {
+      sections.reportedConfirmedHistory.push(text);
+    } else if (chronicFieldId === "conditions_being_investigated") {
+      sections.conditionsBeingInvestigated.push(text);
+    } else if (chronicFieldId === "functional_impact") {
+      sections.functionalImpact.push(text);
+    } else if (chronicFieldId === "current_medications_and_treatments_tried" || fact.category === "MEDICATION") {
+      sections.medicationAndTreatmentHistory.push(text);
+    } else if (chronicFieldId === "questions_for_clinician" || fact.category === "QUESTION") {
+      sections.appointmentGoals.push(text);
+    } else if (
+      chronicFieldId === "baseline_symptoms" ||
+      chronicFieldId === "flares_or_episodes" ||
+      chronicFieldId === "changed_since_last_appointment" ||
+      chronicFieldId === "possible_triggers_to_discuss" ||
+      fact.category === "SYMPTOM"
+    ) {
+      sections.baselineSymptomsAndFlares.push(text);
+    }
+  }
+
+  for (const question of questions) {
+    if (question.chronicFieldId === "questions_for_clinician") {
+      sections.appointmentGoals.push(question.question);
+    }
+  }
+
+  return {
+    reportedConfirmedHistory: uniqueStrings(sections.reportedConfirmedHistory).slice(0, 10),
+    conditionsBeingInvestigated: uniqueStrings(sections.conditionsBeingInvestigated).slice(0, 10),
+    baselineSymptomsAndFlares: uniqueStrings(sections.baselineSymptomsAndFlares).slice(0, 12),
+    medicationAndTreatmentHistory: uniqueStrings(sections.medicationAndTreatmentHistory).slice(0, 12),
+    functionalImpact: uniqueStrings(sections.functionalImpact).slice(0, 10),
+    appointmentGoals: uniqueStrings(sections.appointmentGoals).slice(0, 8)
+  };
+}
+
+function getReviewedPatternCards(patternCards: PatternCard[]): PatternCard[] {
+  return patternCards.filter((card) => card.requiresUserReview && (card.userStatus === "CONFIRMED" || card.userStatus === "EDITED"));
+}
+
+function isPatternCardFact(fact: ExtractedFact): boolean {
+  return fact.value.kind === "pattern_card";
+}
+
+function inferChronicField(fact: ExtractedFact): string | undefined {
+  const text = fact.displayText.toLowerCase();
+
+  if (/being investigated|not confirmed|possible|suspected|rule out|unconfirmed/.test(text)) {
+    return "conditions_being_investigated";
+  }
+
+  if (/confirmed history|diagnosed|diagnosis|history of|known|longstanding/.test(text)) {
+    return "reported_confirmed_history";
+  }
+
+  if (/function|impact|walking|walk|work|sleep|daily|school|care|mobility/.test(text)) {
+    return "functional_impact";
+  }
+
+  if (/medication|medicine|treatment|therapy|physio|tried/.test(text)) {
+    return "current_medications_and_treatments_tried";
+  }
+
+  if (/question|ask|appointment goal/.test(text)) {
+    return "questions_for_clinician";
+  }
+
+  if (/flare|episode|baseline|symptom|fatigue|pain|mobility|worse after|changed|change|since last/.test(text)) {
+    return "baseline_symptoms";
+  }
+
+  return undefined;
+}
+
+function ensureIncludes(value: string, fallback: string): string {
+  return value.toLowerCase().includes(fallback.toLowerCase()) ? value : `${value} ${fallback}`.trim();
+}
+
+function uniqueStrings(items: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const item of items) {
+    const trimmed = item.trim();
+    const key = trimmed.toLowerCase().replace(/\s+/g, " ");
+
+    if (!trimmed || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(trimmed);
+  }
+
+  return result;
+}
+
+function uniqueCoverage(items: ClinicBriefOutput["sourceCoverage"]): ClinicBriefOutput["sourceCoverage"] {
+  const seen = new Set<string>();
+  const result: ClinicBriefOutput["sourceCoverage"] = [];
+
+  for (const item of items) {
+    const key = item.section.toLowerCase();
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
 }
 
 function timelineTypeForFact(fact: ExtractedFact): TimelineEvent["type"] {

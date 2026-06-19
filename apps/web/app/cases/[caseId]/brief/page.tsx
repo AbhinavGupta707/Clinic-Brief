@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ClipboardList, Download, FileText, MessageSquareText } from "lucide-react";
-import { BRIEF_MODE_DEFINITIONS, briefToMarkdown, buildBriefFromReviewedFacts, getBriefModeDefinition } from "@clinicbrief/exports";
+import { BRIEF_MODE_DEFINITIONS, briefToMarkdown, buildBriefFromReviewedFacts, getBriefModeDefinition, includeReviewedPatternCardsInBrief } from "@clinicbrief/exports";
 import type { BriefType } from "@clinicbrief/types";
 import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/app-shell";
 import { Chip, DemoFlowNav, SectionHeader } from "../../../../components/demo/demo-case-components";
 import { getClinicRepository } from "../../../../lib/server/clinic-repository";
+import { listPatternCards } from "../../../../lib/server/pattern-service";
+import { BriefReadbackControls } from "./readback-controls";
 
 type BriefPageProps = {
   params: Promise<{ caseId: string }>;
@@ -24,18 +26,23 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
     notFound();
   }
 
+  const patternCards = listPatternCards(record);
   const savedBrief = record.briefs.find((item) => item.briefType === selectedType);
-  const brief =
+  const brief = includeReviewedPatternCardsInBrief(
     savedBrief?.briefJson ??
-    buildBriefFromReviewedFacts({
+      buildBriefFromReviewedFacts({
       caseTitle: record.title,
+      caseMode: record.mode,
       briefType: selectedType,
       facts: record.facts,
       questions: record.questions,
       timeline: record.timeline,
-      sourcePreviews: record.sourcePreviews
-    });
-  const markdown = savedBrief?.markdown ?? briefToMarkdown(brief);
+        sourcePreviews: record.sourcePreviews,
+        patternCards
+      }),
+    patternCards
+  );
+  const markdown = briefToMarkdown(brief);
   const isDemoCase = caseId === "sample-preop";
 
   return (
@@ -82,6 +89,8 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
             <p>{brief.ninetySecondStory}</p>
           </OutputBriefSection>
 
+          <BriefReadbackControls briefType={selectedType} mode={record.mode} text={brief.ninetySecondStory} />
+
           <OutputBriefSection title="Key timeline" icon={ClipboardList}>
             <ul className="grid gap-3">
               {brief.keyTimeline.map((item) => (
@@ -101,6 +110,21 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
               <BulletList items={brief.openUncertainties} />
             </OutputBriefSection>
           </div>
+
+          {brief.chronicSections ? (
+            <OutputBriefSection title="Chronic appointment context" icon={ClipboardList}>
+              <BulletList
+                items={[
+                  ...brief.chronicSections.reportedConfirmedHistory.map((item) => `Reported confirmed history: ${item}`),
+                  ...brief.chronicSections.conditionsBeingInvestigated.map((item) => `Being investigated or not yet confirmed: ${item}`),
+                  ...brief.chronicSections.baselineSymptomsAndFlares.map((item) => `Baseline, symptom, or flare detail: ${item}`),
+                  ...brief.chronicSections.medicationAndTreatmentHistory.map((item) => `Medication or treatment history to review: ${item}`),
+                  ...brief.chronicSections.functionalImpact.map((item) => `Functional impact: ${item}`),
+                  ...brief.chronicSections.appointmentGoals.map((item) => `Appointment goal or question: ${item}`)
+                ]}
+              />
+            </OutputBriefSection>
+          ) : null}
 
           <div className="grid gap-5 md:grid-cols-2">
             <OutputBriefSection title="Allergies and important notes" icon={FileText}>

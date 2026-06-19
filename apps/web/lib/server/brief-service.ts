@@ -1,6 +1,7 @@
 import { BRIEF_PROMPT, ClinicBriefOutputSchema, REQUIRED_DISCLAIMER, runClinicJson } from "@clinicbrief/ai";
-import { buildBriefFromReviewedFacts } from "@clinicbrief/exports";
+import { buildBriefFromReviewedFacts, includeReviewedPatternCardsInBrief } from "@clinicbrief/exports";
 import type { BriefType, ClinicBriefOutput, ClinicCaseSnapshot, ExtractedFact } from "@clinicbrief/types";
+import { listPatternCards } from "./pattern-service";
 
 export async function buildAppointmentBrief({
   record,
@@ -22,7 +23,8 @@ export async function buildAppointmentBrief({
     });
 
     assertRejectedFactsExcluded(generated, record.facts);
-    return record.mode === "CHRONIC" ? buildChronicAwareBrief(generated, reviewedFacts, record.questions, appointmentGoal) : generated;
+    const brief = record.mode === "CHRONIC" ? buildChronicAwareBrief(generated, reviewedFacts, record.questions, appointmentGoal) : generated;
+    return includeReviewedPatternCardsInBrief(brief, listPatternCards(record));
   } catch {
     return buildDeterministicBrief({ record, briefType, appointmentGoal, reviewedFacts });
   }
@@ -41,15 +43,17 @@ function buildDeterministicBrief({
 }): ClinicBriefOutput {
   const brief = buildBriefFromReviewedFacts({
     caseTitle: record.title,
+    caseMode: record.mode,
     briefType,
     facts: reviewedFacts,
     questions: record.questions,
     timeline: record.timeline,
     sourcePreviews: record.sourcePreviews,
-    appointmentGoal
+    appointmentGoal,
+    patternCards: listPatternCards(record)
   });
 
-  return record.mode === "CHRONIC" ? buildChronicAwareBrief(brief, reviewedFacts, record.questions, appointmentGoal) : brief;
+  return includeReviewedPatternCardsInBrief(record.mode === "CHRONIC" ? buildChronicAwareBrief(brief, reviewedFacts, record.questions, appointmentGoal) : brief, listPatternCards(record));
 }
 
 function buildBriefUserPrompt({

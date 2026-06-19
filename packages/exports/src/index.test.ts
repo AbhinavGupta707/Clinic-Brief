@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Buffer } from "node:buffer";
 import pdfParse from "pdf-parse";
-import type { ClinicBriefOutput } from "@clinicbrief/types";
+import type { ClinicBriefOutput, PatternCard } from "@clinicbrief/types";
 import {
   BRIEF_MODE_DEFINITIONS,
   briefToMarkdown,
@@ -100,9 +100,43 @@ describe("brief export helpers", () => {
     expect(brief.ninetySecondStory).not.toContain("drop");
     expect(brief.sourceCoverage.some((item) => item.section === "Reviewed facts")).toBe(true);
   });
+
+  it("includes reviewed pattern cards but excludes unreviewed pattern marker facts", () => {
+    const brief = buildBriefFromReviewedFacts({
+      caseTitle: "Synthetic chronic review",
+      caseMode: "CHRONIC",
+      briefType: "GP",
+      facts: [
+        makeFact("keep", "SYMPTOM", "CONFIRMED", 0.88),
+        {
+          ...makeFact("unreviewed-pattern", "HISTORY_ITEM", "UNREVIEWED", 0.95),
+          displayText: "Possible repeated symptom pattern to discuss: should not leak until reviewed.",
+          value: { kind: "pattern_card" }
+        }
+      ],
+      questions: [],
+      timeline: [],
+      sourcePreviews: [],
+      patternCards: [makePatternCard("confirmed-pattern", "CONFIRMED"), makePatternCard("unreviewed-card", "UNREVIEWED")]
+    });
+
+    const markdown = briefToMarkdown(brief);
+
+    expect(markdown).toContain("Reviewed pattern to discuss");
+    expect(markdown).toContain("Confirmed pattern to discuss at the appointment.");
+    expect(markdown).not.toContain("should not leak until reviewed");
+    expect(markdown).not.toContain("Unreviewed pattern to discuss");
+    expect(markdown).toContain("## Chronic appointment context");
+    expect(brief.sourceCoverage).toContainEqual({ section: "Reviewed pattern cards", sourceCount: 1 });
+  });
 });
 
-function makeFact(id: string, category: "SYMPTOM" | "MEDICATION" | "TEST_RESULT" | "APPOINTMENT", userStatus: "CONFIRMED" | "EDITED" | "UNREVIEWED" | "REJECTED", confidence: number) {
+function makeFact(
+  id: string,
+  category: "SYMPTOM" | "MEDICATION" | "TEST_RESULT" | "APPOINTMENT" | "HISTORY_ITEM",
+  userStatus: "CONFIRMED" | "EDITED" | "UNREVIEWED" | "REJECTED",
+  confidence: number
+) {
   return {
     id,
     caseId: "case-output",
@@ -114,5 +148,23 @@ function makeFact(id: string, category: "SYMPTOM" | "MEDICATION" | "TEST_RESULT"
     userStatus,
     sourceQuote: `${id} output fact.`,
     createdAt: "2026-06-19T00:00:00.000Z"
+  };
+}
+
+function makePatternCard(id: string, userStatus: PatternCard["userStatus"]): PatternCard {
+  return {
+    id,
+    caseId: "case-output",
+    kind: "repeated_symptom",
+    title: userStatus === "UNREVIEWED" ? "Unreviewed pattern to discuss" : "Confirmed pattern to discuss",
+    summary: "Synthetic source-backed pattern for testing.",
+    suggestedBriefText: userStatus === "UNREVIEWED" ? "Unreviewed pattern to discuss at the appointment." : "Confirmed pattern to discuss at the appointment.",
+    safetyLabel: "possible_pattern_to_discuss",
+    userStatus,
+    requiresUserReview: true,
+    sourceFactIds: ["keep"],
+    confidence: 0.86,
+    createdAt: "2026-06-19T00:00:00.000Z",
+    reviewedAt: userStatus === "CONFIRMED" || userStatus === "EDITED" ? "2026-06-19T00:00:00.000Z" : undefined
   };
 }
