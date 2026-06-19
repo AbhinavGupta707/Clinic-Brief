@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Mic, Send, ShieldAlert } from "lucide-react";
 import { Events, trackEvent } from "@clinicbrief/events";
-import type { BriefType, MissingQuestion } from "@clinicbrief/types";
+import type { ApiResponse, BriefType, MissingQuestion, RehearsalMessageResponse, RehearsalSession } from "@clinicbrief/types";
 
 type Message = {
   role: "assistant" | "user";
@@ -40,19 +40,6 @@ declare global {
   }
 }
 
-const safeRedirect =
-  "I can help organize your notes and list questions to ask. I cannot diagnose or recommend treatment. If symptoms feel urgent or severe, contact emergency or urgent medical services.";
-
-const prohibitedPatterns = [
-  /\bwhat (condition|disease|illness) do i have\b/i,
-  /\bshould i (take|stop|start|change)\b/i,
-  /\bdo i need surgery\b/i,
-  /\bis this (an )?emergency\b/i,
-  /\bwhat dose should i take\b/i,
-  /\bdiagnos(e|is)\b/i,
-  /\btreatment recommendation\b/i
-];
-
 export function RehearsalClient({
   briefType,
   caseId,
@@ -66,8 +53,10 @@ export function RehearsalClient({
 }) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [draft, setDraft] = useState("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [speechStatus, setSpeechStatus] = useState("Typed answers are always available.");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const firstQuestion = questions[0]?.question ?? "What would you like to make sure you say at the appointment?";
@@ -78,45 +67,72 @@ export function RehearsalClient({
     }
   ]);
 
-  const currentQuestion = questions[currentQuestionIndex];
   const answeredCount = useMemo(() => messages.filter((message) => message.role === "user").length, [messages]);
 
   useEffect(() => {
     setSpeechSupported(Boolean(window.SpeechRecognition ?? window.webkitSpeechRecognition));
     trackEvent(Events.RehearsalStarted, { mode: "PREOP", briefType, questionCount: questions.length });
+    void startSession();
   }, [briefType, questions.length]);
 
-  function handleSubmit() {
+  async function startSession() {
+    const payload = await sendRehearsalMessage("Start rehearsal", null);
+
+    if (payload?.ok && payload.data) {
+      setSessionId(payload.data.sessionId);
+      setMessages(mapSessionMessages(payload.data.session));
+    }
+  }
+
+  async function handleSubmit() {
     const answer = draft.trim();
     if (!answer) {
       return;
     }
 
-    const blocked = prohibitedPatterns.some((pattern) => pattern.test(answer));
-    const nextQuestionIndex = blocked ? currentQuestionIndex : Math.min(currentQuestionIndex + 1, questions.length);
-    const nextQuestion = questions[nextQuestionIndex];
-    const assistantBody = blocked
-      ? `${safeRedirect} Let's stay with appointment preparation. ${currentQuestion?.question ?? firstQuestion}`
-      : nextQuestion
-        ? `Thank you. Next question: ${nextQuestion.question}`
-        : "Thank you. That gives you a consistent practice run. Review the brief before sharing it with a clinician.";
+    setIsSending(true);
+    const payload = await sendRehearsalMessage(answer, sessionId);
+    setIsSending(false);
 
-    setMessages((items) => [
-      ...items,
-      { role: "user", body: answer },
-      {
-        role: "assistant",
-        body: assistantBody
-      }
-    ]);
-    setCurrentQuestionIndex(nextQuestionIndex);
+    if (payload?.ok && payload.data) {
+      const mappedMessages = mapSessionMessages(payload.data.session);
+      const nextAnsweredCount = mappedMessages.filter((message) => message.role === "user").length;
+
+      setSessionId(payload.data.sessionId);
+      setMessages(mappedMessages);
+      setCurrentQuestionIndex(Math.min(nextAnsweredCount, questions.length));
+    } else {
+      setMessages((items) => [
+        ...items,
+        { role: "user", body: answer },
+        {
+          role: "assistant",
+          body: `${payload?.error?.message ?? "I could not save that rehearsal answer."} Try again, or continue from the brief.`
+        }
+      ]);
+    }
+
     setDraft("");
     trackEvent(Events.RehearsalMessageSent, {
       mode: "PREOP",
       briefType,
       questionCount: questions.length,
-      answeredQuestionCount: blocked ? answeredCount : answeredCount + 1
+      answeredQuestionCount: answeredCount + 1
     });
+  }
+
+  async function sendRehearsalMessage(message: string, activeSessionId: string | null) {
+    const response = await fetch(`/api/cases/${caseId}/rehearsal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeSessionId ?? undefined,
+        message,
+        mode: rehearsalModeForBrief(briefType)
+      })
+    });
+
+    return (await response.json().catch(() => null)) as ApiResponse<RehearsalMessageResponse> | null;
   }
 
   function startSpeechInput() {
@@ -190,11 +206,12 @@ export function RehearsalClient({
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+              disabled={isSending}
               onClick={handleSubmit}
               type="button"
             >
               <Send size={18} aria-hidden />
-              Send answer
+              {isSending ? "Sending" : "Send answer"}
             </button>
             <button
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
@@ -232,4 +249,25 @@ export function RehearsalClient({
       </aside>
     </section>
   );
+}
+
+function rehearsalModeForBrief(briefType: BriefType): "PREOP_NURSE" | "CONSULTANT" | "GP" {
+  if (briefType === "PREOP") {
+    return "PREOP_NURSE";
+  }
+
+  if (briefType === "CONSULTANT") {
+    return "CONSULTANT";
+  }
+
+  return "GP";
+}
+
+function mapSessionMessages(session: RehearsalSession): Message[] {
+  return session.messages
+    .filter((message): message is RehearsalSession["messages"][number] & { role: Message["role"] } => message.role === "assistant" || message.role === "user")
+    .map((message) => ({
+      role: message.role,
+      body: message.content
+    }));
 }

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft, FileDown, FileText, ShieldCheck } from "lucide-react";
-import { preopCase } from "@clinicbrief/fixtures";
-import { BRIEF_MODE_DEFINITIONS, buildBriefVariant, buildExportBundle } from "@clinicbrief/exports";
+import { BRIEF_MODE_DEFINITIONS, buildBriefFromReviewedFacts, buildExportBundle } from "@clinicbrief/exports";
 import type { BriefType } from "@clinicbrief/types";
+import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/app-shell";
 import { DemoFlowNav, SectionHeader } from "../../../../components/demo/demo-case-components";
+import { getClinicRepository } from "../../../../lib/server/clinic-repository";
 import { ExportActions } from "./export-actions";
 
 type ExportPageProps = {
@@ -16,9 +17,26 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
   const { caseId } = await params;
   const query = searchParams ? await searchParams : {};
   const selectedType = parseBriefType(query.type) ?? "PREOP";
-  const brief = buildBriefVariant(preopCase.expectedBrief, selectedType);
+  const repository = await getClinicRepository();
+  const record = await repository.getCase(caseId);
+
+  if (!record) {
+    notFound();
+  }
+
+  const savedBrief = record.briefs.find((item) => item.briefType === selectedType);
+  const brief =
+    savedBrief?.briefJson ??
+    buildBriefFromReviewedFacts({
+      caseTitle: record.title,
+      briefType: selectedType,
+      facts: record.facts,
+      questions: record.questions,
+      timeline: record.timeline,
+      sourcePreviews: record.sourcePreviews
+    });
   const bundle = buildExportBundle(brief, selectedType);
-  const isDemoCase = caseId === preopCase.id;
+  const isDemoCase = caseId === "sample-preop";
 
   return (
     <AppShell eyebrow={`Case ${caseId}`} title="Export and share">

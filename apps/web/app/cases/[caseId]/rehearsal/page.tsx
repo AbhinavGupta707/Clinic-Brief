@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft, Download } from "lucide-react";
-import { preopCase } from "@clinicbrief/fixtures";
-import { BRIEF_MODE_DEFINITIONS, buildBriefVariant, getBriefModeDefinition } from "@clinicbrief/exports";
-import type { BriefType } from "@clinicbrief/types";
+import { BRIEF_MODE_DEFINITIONS, buildBriefFromReviewedFacts, getBriefModeDefinition } from "@clinicbrief/exports";
+import type { BriefType, ClinicBriefOutput, MissingQuestion } from "@clinicbrief/types";
+import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/app-shell";
 import { DemoFlowNav, SectionHeader } from "../../../../components/demo/demo-case-components";
+import { getClinicRepository } from "../../../../lib/server/clinic-repository";
 import { RehearsalClient } from "./rehearsal-client";
 
 type RehearsalPageProps = {
@@ -17,8 +18,26 @@ export default async function RehearsalPage({ params, searchParams }: RehearsalP
   const query = searchParams ? await searchParams : {};
   const selectedType = parseBriefType(query.type) ?? "PREOP";
   const mode = getBriefModeDefinition(selectedType);
-  const brief = buildBriefVariant(preopCase.expectedBrief, selectedType);
-  const isDemoCase = caseId === preopCase.id;
+  const repository = await getClinicRepository();
+  const record = await repository.getCase(caseId);
+
+  if (!record) {
+    notFound();
+  }
+
+  const savedBrief = record.briefs.find((item) => item.briefType === selectedType);
+  const brief =
+    savedBrief?.briefJson ??
+    buildBriefFromReviewedFacts({
+      caseTitle: record.title,
+      briefType: selectedType,
+      facts: record.facts,
+      questions: record.questions,
+      timeline: record.timeline,
+      sourcePreviews: record.sourcePreviews
+    });
+  const questions = record.questions.length > 0 ? record.questions : fallbackQuestionsFromBrief(caseId, brief);
+  const isDemoCase = caseId === "sample-preop";
 
   return (
     <AppShell eyebrow={`Case ${caseId}`} title="Appointment rehearsal">
@@ -36,11 +55,11 @@ export default async function RehearsalPage({ params, searchParams }: RehearsalP
           <span>One appointment-prep question at a time</span>
         </div>
         <p className="max-w-3xl text-sm leading-6 text-clinic-muted">
-          This mocked rehearsal uses the synthetic case questions only. Typed answers always work; browser speech recognition is optional.
+          This rehearsal saves typed practice answers for this case and keeps each response within appointment preparation. Browser speech recognition is optional.
         </p>
       </section>
 
-      <RehearsalClient briefType={selectedType} caseId={caseId} questions={preopCase.expectedQuestions} story={brief.ninetySecondStory} />
+      <RehearsalClient briefType={selectedType} caseId={caseId} questions={questions} story={brief.ninetySecondStory} />
 
       <div className="flex flex-wrap gap-3">
         <Link
@@ -65,4 +84,16 @@ export default async function RehearsalPage({ params, searchParams }: RehearsalP
 function parseBriefType(value: string | string[] | undefined): BriefType | null {
   const candidate = Array.isArray(value) ? value[0] : value;
   return BRIEF_MODE_DEFINITIONS.some((mode) => mode.type === candidate) ? (candidate as BriefType) : null;
+}
+
+function fallbackQuestionsFromBrief(caseId: string, brief: ClinicBriefOutput): MissingQuestion[] {
+  const items = brief.questionsForClinician.length > 0 ? brief.questionsForClinician : ["What is the most important point to make at the appointment?"];
+
+  return items.slice(0, 5).map((question, index) => ({
+    id: `brief-question-${caseId}-${index}`,
+    priority: index === 0 ? "high" : "medium",
+    question,
+    whyItMattersForAppointment: "This keeps the rehearsal focused on appointment preparation.",
+    answerType: "short_text"
+  }));
 }
