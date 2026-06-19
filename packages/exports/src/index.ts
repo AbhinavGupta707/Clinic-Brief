@@ -1,3 +1,6 @@
+import { createElement } from "react";
+import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import type { ReactNode } from "react";
 import type { BriefType, ClinicBriefOutput, ExtractedFact, MissingQuestion, SourcePreview, TimelineEvent } from "@clinicbrief/types";
 
 export type BriefModeDefinition = {
@@ -229,6 +232,83 @@ export type ExportBundle = {
   };
 };
 
+const pdfStyles = StyleSheet.create({
+  page: {
+    padding: 32,
+    fontFamily: "Helvetica",
+    fontSize: 9.5,
+    lineHeight: 1.32,
+    color: "#15323a",
+    backgroundColor: "#ffffff"
+  },
+  header: {
+    borderBottom: "1 solid #b8d8dd",
+    paddingBottom: 10,
+    marginBottom: 10
+  },
+  label: {
+    fontSize: 8,
+    color: "#13777f",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 4
+  },
+  title: {
+    fontSize: 20,
+    color: "#0f2d35",
+    fontWeight: 700,
+    marginBottom: 5
+  },
+  reason: {
+    fontSize: 10,
+    color: "#365e66"
+  },
+  grid: {
+    display: "flex",
+    flexDirection: "row",
+    gap: 10
+  },
+  column: {
+    flexGrow: 1,
+    flexBasis: 0
+  },
+  section: {
+    marginBottom: 8
+  },
+  sectionTitle: {
+    fontSize: 10.5,
+    color: "#0f2d35",
+    fontWeight: 700,
+    marginBottom: 4
+  },
+  paragraph: {
+    color: "#365e66"
+  },
+  listItem: {
+    display: "flex",
+    flexDirection: "row",
+    gap: 4,
+    marginBottom: 2.5,
+    color: "#365e66"
+  },
+  bullet: {
+    width: 8,
+    color: "#13777f"
+  },
+  bulletText: {
+    flexGrow: 1,
+    flexBasis: 0
+  },
+  disclaimer: {
+    marginTop: 6,
+    padding: 8,
+    border: "1 solid #b8d8dd",
+    backgroundColor: "#f3fbfb",
+    color: "#244b52",
+    fontSize: 8.5
+  }
+});
+
 export function buildExportBundle(brief: ClinicBriefOutput, briefType: BriefType): ExportBundle {
   const markdown = briefToMarkdown(brief);
   const slug = slugify(`${briefType.toLowerCase()}-${brief.title}`);
@@ -246,6 +326,136 @@ export function buildExportBundle(brief: ClinicBriefOutput, briefType: BriefType
       instructions: "Use the browser print dialog and choose Save as PDF if the PDF renderer is unavailable."
     }
   };
+}
+
+export async function generateBriefPdf(brief: ClinicBriefOutput, briefType: BriefType): Promise<Uint8Array<ArrayBuffer>> {
+  const document = createBriefPdfDocument(brief, briefType);
+  const buffer = await renderToBuffer(document);
+
+  if (buffer.byteLength === 0) {
+    throw new Error("PDF renderer returned an empty buffer.");
+  }
+
+  const pdf = new Uint8Array(buffer.byteLength);
+  pdf.set(buffer);
+  return pdf;
+}
+
+function createBriefPdfDocument(brief: ClinicBriefOutput, briefType: BriefType) {
+  const mode = getBriefModeDefinition(briefType);
+
+  return createElement(
+    Document,
+    {
+      title: brief.title,
+      author: "ClinicBrief",
+      subject: `${mode.label} for appointment preparation`,
+      creator: "ClinicBrief"
+    },
+    createElement(
+      Page,
+      { size: "A4", style: pdfStyles.page, wrap: true },
+      createElement(
+        View,
+        { style: pdfStyles.header },
+        createElement(Text, { style: pdfStyles.label }, "ClinicBrief appointment preparation"),
+        createElement(Text, { style: pdfStyles.title }, brief.title),
+        createElement(Text, { style: pdfStyles.reason }, brief.oneLineReasonForVisit)
+      ),
+      createElement(PdfSection, { title: "90-second story" }, createElement(Text, { style: pdfStyles.paragraph }, brief.ninetySecondStory)),
+      createElement(
+        View,
+        { style: pdfStyles.grid },
+        createElement(
+          View,
+          { style: pdfStyles.column },
+          createElement(PdfListSection, {
+            title: "Key timeline",
+            items: brief.keyTimeline.map((item) => `${item.dateLabel}: ${item.event}`),
+            fallback: "No timeline events have been confirmed yet.",
+            limit: 6
+          }),
+          createElement(PdfListSection, {
+            title: "Medications",
+            items: brief.currentMedications.map((item) => [item.name, item.dose, item.frequency, item.notes].filter(Boolean).join(" - ")),
+            fallback: "No current medications were confirmed in the reviewed information.",
+            limit: 5
+          }),
+          createElement(PdfListSection, {
+            title: "Allergies and important notes",
+            items: brief.allergiesAndImportantNotes,
+            fallback: "No allergies or important notes were confirmed yet.",
+            limit: 5
+          }),
+          createElement(PdfListSection, {
+            title: "Questions",
+            items: brief.questionsForClinician,
+            fallback: "No questions have been added yet.",
+            limit: 5
+          })
+        ),
+        createElement(
+          View,
+          { style: pdfStyles.column },
+          createElement(PdfListSection, {
+            title: "What changed since last appointment",
+            items: brief.whatChangedSinceLastAppointment,
+            fallback: "No changes have been confirmed yet.",
+            limit: 5
+          }),
+          createElement(PdfListSection, {
+            title: "Uncertainties",
+            items: brief.openUncertainties,
+            fallback: "No open uncertainties were recorded.",
+            limit: 5
+          }),
+          createElement(PdfListSection, {
+            title: "Source coverage",
+            items: brief.sourceCoverage.map((item) => `${item.section}: ${item.sourceCount} source${item.sourceCount === 1 ? "" : "s"}`),
+            fallback: "No source coverage is available.",
+            limit: 6
+          })
+        )
+      ),
+      createElement(Text, { style: pdfStyles.disclaimer }, brief.safetyDisclaimer)
+    )
+  );
+}
+
+function PdfSection({ title, children }: { title: string; children?: ReactNode }) {
+  return createElement(
+    View,
+    { style: pdfStyles.section },
+    createElement(Text, { style: pdfStyles.sectionTitle }, title),
+    children
+  );
+}
+
+function PdfListSection({ title, items, fallback, limit }: { title: string; items: string[]; fallback: string; limit: number }) {
+  const cleanItems = items.map((item) => item.trim()).filter(Boolean);
+  const displayItems = cleanItems.length > 0 ? cleanItems.slice(0, limit) : [fallback];
+  const remaining = Math.max(cleanItems.length - limit, 0);
+
+  return createElement(
+    PdfSection,
+    { title },
+    ...displayItems.map((item) =>
+      createElement(
+        View,
+        { key: item, style: pdfStyles.listItem },
+        createElement(Text, { style: pdfStyles.bullet }, "-"),
+        createElement(Text, { style: pdfStyles.bulletText }, item)
+      )
+    ),
+    remaining > 0
+      ? createElement(
+          View,
+          { style: pdfStyles.listItem },
+          createElement(Text, { style: pdfStyles.bullet }, "-"),
+          createElement(Text, { style: pdfStyles.bulletText }, `${remaining} more item${remaining === 1 ? "" : "s"} in the Markdown/browser-print fallback.`)
+        )
+      : null
+  );
 }
 
 function listItems(items: string[], fallback: string): string[] {

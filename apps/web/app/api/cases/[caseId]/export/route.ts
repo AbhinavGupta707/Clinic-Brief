@@ -1,8 +1,10 @@
-import { buildBriefFromReviewedFacts, buildExportBundle } from "@clinicbrief/exports";
+import { buildBriefFromReviewedFacts, buildExportBundle, generateBriefPdf } from "@clinicbrief/exports";
 import type { ApiResponse, AppointmentBrief, BriefType } from "@clinicbrief/types";
 import { z } from "zod";
 
 import { getClinicRepository } from "../../../../../lib/server/clinic-repository";
+
+export const runtime = "nodejs";
 
 const ExportRequestSchema = z
   .object({
@@ -72,6 +74,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       createdAt: new Date().toISOString()
     } satisfies AppointmentBrief);
   const bundle = buildExportBundle(brief.briefJson, briefType);
+
+  try {
+    const pdfBuffer = await generateBriefPdf(brief.briefJson, briefType);
+
+    return new Response(pdfBuffer, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${bundle.pdfFileName}"`,
+        "Cache-Control": "no-store",
+        "X-ClinicBrief-Pdf-Generated": "true"
+      }
+    });
+  } catch {
+    // Keep the demo-critical export path usable if server-side PDF rendering fails.
+  }
 
   return Response.json({
     ok: true,

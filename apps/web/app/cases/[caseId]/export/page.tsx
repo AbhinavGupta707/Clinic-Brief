@@ -44,8 +44,8 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
 
       <SectionHeader
         eyebrow="Takeaway"
-        title="Print as PDF, download Markdown, or copy the fallback"
-        body="The export surface is readable even without server-side PDF rendering. Use the browser print dialog and choose Save as PDF for the demo."
+        title="Download a PDF, print from the browser, or keep Markdown"
+        body="ClinicBrief now tries server-side PDF generation first. If the renderer is unavailable, the browser print and Markdown outputs stay complete and readable."
       />
 
       <div className="grid gap-5 lg:grid-cols-[22rem_1fr]">
@@ -53,9 +53,11 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
           <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
             <h2 className="flex items-center gap-2 font-semibold text-clinic-ink">
               <FileDown size={18} aria-hidden />
-              PDF fallback
+              PDF export
             </h2>
-            <p className="mt-2 text-sm leading-6 text-clinic-muted">{bundle.pdfFallback.instructions}</p>
+            <p className="mt-2 text-sm leading-6 text-clinic-muted">
+              Download the server-generated PDF, or use {bundle.pdfFallback.label.toLowerCase()} if rendering is unavailable.
+            </p>
           </section>
 
           <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
@@ -76,7 +78,7 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
             <p className="mt-2 text-sm leading-6 text-clinic-muted">{brief.safetyDisclaimer}</p>
           </section>
 
-          <ExportActions briefType={selectedType} bundle={bundle} sourceCount={brief.sourceCoverage.length} />
+          <ExportActions caseId={caseId} briefType={selectedType} bundle={bundle} sourceCount={brief.sourceCoverage.length} />
 
           <Link
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"

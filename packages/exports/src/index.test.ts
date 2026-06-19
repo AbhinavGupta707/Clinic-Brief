@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { Buffer } from "node:buffer";
+import pdfParse from "pdf-parse";
 import type { ClinicBriefOutput } from "@clinicbrief/types";
-import { BRIEF_MODE_DEFINITIONS, briefToMarkdown, buildBriefFromReviewedFacts, buildBriefVariant, buildExportBundle, buildTimelineFromReviewedFacts } from "./index";
+import {
+  BRIEF_MODE_DEFINITIONS,
+  briefToMarkdown,
+  buildBriefFromReviewedFacts,
+  buildBriefVariant,
+  buildExportBundle,
+  buildTimelineFromReviewedFacts,
+  generateBriefPdf
+} from "./index";
 
 const requiredDisclaimer =
   "ClinicBrief organizes information you provide so you can prepare for appointments. It does not diagnose, recommend treatment, or replace medical advice. Review everything before sharing it with a clinician.";
@@ -43,6 +53,16 @@ describe("brief export helpers", () => {
     expect(bundle.pdfFallback.method).toBe("browser_print");
     expect(bundle.markdownFileName).toMatch(/preop/);
     expect(bundle.markdown).toContain("# Pre-op nurse brief");
+  });
+
+  it("generates a non-empty PDF with inspectable title and disclaimer text", async () => {
+    const pdf = await generateBriefPdf(buildBriefVariant(baseBrief, "PREOP"), "PREOP");
+
+    expect(pdf.byteLength).toBeGreaterThan(1000);
+    const parsed = await pdfParse(Buffer.from(pdf));
+    const text = parsed.text.replace(/\s+/g, " ");
+    expect(text).toContain("Pre-op nurse brief");
+    expect(text).toContain(requiredDisclaimer);
   });
 
   it("generates timelines from confirmed, edited, and high-confidence unrejected facts only", () => {
