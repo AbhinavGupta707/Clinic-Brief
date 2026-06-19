@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ClipboardList, Download, FileText, MessageSquareText } from "lucide-react";
-import { preopCase } from "@clinicbrief/fixtures";
-import { BRIEF_MODE_DEFINITIONS, briefToMarkdown, buildBriefVariant, getBriefModeDefinition } from "@clinicbrief/exports";
+import { BRIEF_MODE_DEFINITIONS, briefToMarkdown, buildBriefFromReviewedFacts, getBriefModeDefinition } from "@clinicbrief/exports";
 import type { BriefType } from "@clinicbrief/types";
+import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/app-shell";
 import { Chip, DemoFlowNav, SectionHeader } from "../../../../components/demo/demo-case-components";
+import { getClinicRepository } from "../../../../lib/server/clinic-repository";
 
 type BriefPageProps = {
   params: Promise<{ caseId: string }>;
@@ -16,9 +17,26 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
   const query = searchParams ? await searchParams : {};
   const selectedType = parseBriefType(query.type) ?? "PREOP";
   const mode = getBriefModeDefinition(selectedType);
-  const brief = buildBriefVariant(preopCase.expectedBrief, selectedType);
-  const markdown = briefToMarkdown(brief);
-  const isDemoCase = caseId === preopCase.id;
+  const repository = await getClinicRepository();
+  const record = await repository.getCase(caseId);
+
+  if (!record) {
+    notFound();
+  }
+
+  const savedBrief = record.briefs.find((item) => item.briefType === selectedType);
+  const brief =
+    savedBrief?.briefJson ??
+    buildBriefFromReviewedFacts({
+      caseTitle: record.title,
+      briefType: selectedType,
+      facts: record.facts,
+      questions: record.questions,
+      timeline: record.timeline,
+      sourcePreviews: record.sourcePreviews
+    });
+  const markdown = savedBrief?.markdown ?? briefToMarkdown(brief);
+  const isDemoCase = caseId === "sample-preop";
 
   return (
     <AppShell eyebrow={`Case ${caseId}`} title={brief.title}>

@@ -1,4 +1,4 @@
-import type { BriefType, ClinicBriefOutput } from "@clinicbrief/types";
+import type { BriefType, ClinicBriefOutput, ExtractedFact, MissingQuestion, SourcePreview, TimelineEvent } from "@clinicbrief/types";
 
 export type BriefModeDefinition = {
   type: BriefType;
@@ -52,6 +52,9 @@ export const BRIEF_MODE_DEFINITIONS: BriefModeDefinition[] = [
   }
 ];
 
+export const REQUIRED_SAFETY_DISCLAIMER =
+  "ClinicBrief organizes information you provide so you can prepare for appointments. It does not diagnose, recommend treatment, or replace medical advice. Review everything before sharing it with a clinician.";
+
 const modeDefinitionsByType = Object.fromEntries(BRIEF_MODE_DEFINITIONS.map((mode) => [mode.type, mode])) as Record<
   BriefType,
   BriefModeDefinition
@@ -75,6 +78,74 @@ const modeReasonPrefixes: Record<BriefType, string> = {
 
 export function getBriefModeDefinition(briefType: BriefType): BriefModeDefinition {
   return modeDefinitionsByType[briefType];
+}
+
+export function getFactsForGeneratedOutputs(facts: ExtractedFact[]): ExtractedFact[] {
+  return facts.filter((fact) => fact.userStatus !== "REJECTED" && (fact.userStatus === "CONFIRMED" || fact.userStatus === "EDITED" || fact.confidence >= 0.8));
+}
+
+export function buildTimelineFromReviewedFacts(caseId: string, facts: ExtractedFact[]): TimelineEvent[] {
+  return getFactsForGeneratedOutputs(facts).map((fact, index) => ({
+    id: `timeline-${caseId}-${fact.id}`,
+    caseId,
+    date: getFactDate(fact),
+    approximateDate: getFactDate(fact) ? undefined : "Date not provided",
+    type: timelineTypeForFact(fact),
+    title: timelineTitleForFact(fact),
+    description: fact.displayText,
+    sourceFactIds: [fact.id],
+    createdAt: new Date(Date.now() + index).toISOString()
+  }));
+}
+
+export function buildBriefFromReviewedFacts(input: {
+  caseTitle: string;
+  briefType: BriefType;
+  facts: ExtractedFact[];
+  questions: MissingQuestion[];
+  timeline: TimelineEvent[];
+  sourcePreviews: SourcePreview[];
+  appointmentGoal?: string;
+}): ClinicBriefOutput {
+  const facts = getFactsForGeneratedOutputs(input.facts);
+  const timeline = input.timeline.length > 0 ? input.timeline : buildTimelineFromReviewedFacts("case", facts);
+  const medicationFacts = facts.filter((fact) => fact.category === "MEDICATION");
+  const allergyFacts = facts.filter((fact) => fact.category === "ALLERGY");
+  const symptomFacts = facts.filter((fact) => fact.category === "SYMPTOM");
+  const questionFacts = facts.filter((fact) => fact.category === "QUESTION");
+  const notableFacts = facts.filter((fact) => fact.category !== "MEDICATION" && fact.category !== "QUESTION" && fact.category !== "SYMPTOM");
+  const questionsForClinician = [
+    ...questionFacts.map((fact) => cleanDisplayText(fact.displayText)),
+    ...input.questions.slice(0, 6).map((question) => question.question)
+  ];
+  const openUncertainties = input.questions.slice(0, 6).map((question) => question.whyItMattersForAppointment);
+  const storyFacts = facts.slice(0, 4).map((fact) => cleanDisplayText(fact.displayText));
+
+  return buildBriefVariant(
+    {
+      title: modeTitles[input.briefType],
+      oneLineReasonForVisit: input.appointmentGoal?.trim() || `${input.caseTitle}: appointment preparation from reviewed source information.`,
+      ninetySecondStory:
+        storyFacts.length > 0
+          ? `I am preparing for this appointment and have reviewed the notes I provided. The main points I want to explain are: ${storyFacts.join(" ")} I would like to confirm the open questions with the clinician.`
+          : "I am preparing for this appointment and want to use the time to explain my notes clearly, confirm missing details, and ask the questions listed in this brief.",
+      keyTimeline: timeline.map((event) => ({
+        dateLabel: event.date ?? event.approximateDate ?? "Date not provided",
+        event: event.description
+      })),
+      currentMedications: medicationFacts.map((fact) => ({
+        name: cleanDisplayText(fact.displayText),
+        notes: sourceLabel(fact)
+      })),
+      allergiesAndImportantNotes: [...allergyFacts, ...notableFacts].slice(0, 8).map((fact) => cleanDisplayText(fact.displayText)),
+      whatChangedSinceLastAppointment: symptomFacts.length > 0 ? symptomFacts.map((fact) => cleanDisplayText(fact.displayText)) : facts.slice(0, 5).map((fact) => cleanDisplayText(fact.displayText)),
+      questionsForClinician,
+      openUncertainties: openUncertainties.length > 0 ? openUncertainties : ["Review any unconfirmed details before sharing this brief."],
+      sourceCoverage: buildSourceCoverage(facts, input.sourcePreviews, input.questions),
+      safetyDisclaimer: REQUIRED_SAFETY_DISCLAIMER
+    },
+    input.briefType
+  );
 }
 
 export function buildBriefVariant(brief: ClinicBriefOutput, briefType: BriefType): ClinicBriefOutput {
@@ -180,6 +251,69 @@ export function buildExportBundle(brief: ClinicBriefOutput, briefType: BriefType
 function listItems(items: string[], fallback: string): string[] {
   const cleanItems = items.map((item) => item.trim()).filter(Boolean);
   return cleanItems.length > 0 ? cleanItems.map((item) => `- ${item}`) : [`- ${fallback}`];
+}
+
+function buildSourceCoverage(facts: ExtractedFact[], sourcePreviews: SourcePreview[], questions: MissingQuestion[]): ClinicBriefOutput["sourceCoverage"] {
+  const sourceIds = new Set(facts.map((fact) => fact.sourceDocId).filter(Boolean));
+
+  return [
+    { section: "Reviewed facts", sourceCount: facts.length },
+    { section: "Source documents", sourceCount: sourceIds.size || sourcePreviews.length },
+    { section: "Open questions", sourceCount: questions.length }
+  ];
+}
+
+function timelineTypeForFact(fact: ExtractedFact): TimelineEvent["type"] {
+  if (fact.category === "MEDICATION") {
+    return "MEDICATION_CHANGE";
+  }
+
+  if (fact.category === "SYMPTOM") {
+    return "SYMPTOM_CHANGE";
+  }
+
+  if (fact.category === "APPOINTMENT") {
+    return "APPOINTMENT";
+  }
+
+  if (fact.category === "TEST_RESULT") {
+    return "TEST";
+  }
+
+  if (fact.category === "PROCEDURE") {
+    return "PROCEDURE";
+  }
+
+  return "NOTE";
+}
+
+function timelineTitleForFact(fact: ExtractedFact): string {
+  const labels: Record<ExtractedFact["category"], string> = {
+    ALLERGY: "Allergy or reaction detail captured",
+    APPOINTMENT: "Appointment detail captured",
+    CONTACT: "Support contact detail captured",
+    HISTORY_ITEM: "History item captured",
+    MEDICATION: "Medication detail captured",
+    PROCEDURE: "Procedure detail captured",
+    QUESTION: "Question captured",
+    SYMPTOM: "Symptom or change captured",
+    TEST_RESULT: "Test or result captured"
+  };
+
+  return labels[fact.category];
+}
+
+function getFactDate(fact: ExtractedFact): string | undefined {
+  const value = fact.value.date ?? fact.value.dateLabel ?? fact.value.appointmentDate;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function sourceLabel(fact: ExtractedFact): string | undefined {
+  return fact.sourceDocId ? `Source: ${fact.sourceDocId}` : undefined;
+}
+
+function cleanDisplayText(value: string): string {
+  return value.replace(/^Source mentions:\s*/i, "").trim();
 }
 
 function slugify(value: string): string {

@@ -1,16 +1,34 @@
-import { preopCase } from "@clinicbrief/fixtures";
+import { buildBriefFromReviewedFacts, buildTimelineFromReviewedFacts } from "@clinicbrief/exports";
+import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/app-shell";
 import { Chip, DemoCta, DemoFlowNav, SectionHeader, TimelineRow } from "../../../../components/demo/demo-case-components";
+import { getClinicRepository } from "../../../../lib/server/clinic-repository";
 
 const filterLabels = ["All", "Appointment", "Medication", "Symptom", "Note"];
 
 export default async function TimelinePage({ params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
-  const brief = preopCase.expectedBrief;
+  const repository = await getClinicRepository();
+  const record = await repository.getCase(caseId);
+
+  if (!record) {
+    notFound();
+  }
+
+  const timeline = record.timeline.length > 0 ? record.timeline : buildTimelineFromReviewedFacts(caseId, record.facts);
+  const brief = buildBriefFromReviewedFacts({
+    caseTitle: record.title,
+    briefType: record.mode === "PREOP" ? "PREOP" : "GP",
+    facts: record.facts,
+    questions: record.questions,
+    timeline,
+    sourcePreviews: record.sourcePreviews
+  });
+  const isDemoCase = caseId === "sample-preop";
 
   return (
     <AppShell eyebrow={`Case ${caseId}`} title="Timeline">
-      <DemoFlowNav current="Timeline" />
+      {isDemoCase ? <DemoFlowNav current="Timeline" /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <section className="grid content-start gap-4">
@@ -35,9 +53,10 @@ export default async function TimelinePage({ params }: { params: Promise<{ caseI
           </div>
 
           <ol className="grid gap-3">
-            {preopCase.expectedTimeline.map((event) => (
+            {timeline.map((event) => (
               <TimelineRow key={event.id} event={event} />
             ))}
+            {timeline.length === 0 ? <li className="rounded-md border border-dashed border-clinic-line bg-white p-5 text-sm text-clinic-muted">Confirm or edit extracted facts to build a timeline.</li> : null}
           </ol>
         </section>
 
@@ -71,8 +90,8 @@ export default async function TimelinePage({ params }: { params: Promise<{ caseI
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <DemoCta href="/cases/sample-preop/brief">Generate one-page brief</DemoCta>
-        <DemoCta href="/cases/sample-preop/review" secondary>
+        <DemoCta href={`/cases/${caseId}/brief`}>Generate one-page brief</DemoCta>
+        <DemoCta href={`/cases/${caseId}/review`} secondary>
           Back to review
         </DemoCta>
       </div>
