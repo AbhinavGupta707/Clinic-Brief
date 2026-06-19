@@ -2,54 +2,78 @@
 
 ## Current Status
 
-ClinicBrief is integrated on `main` as a demo-ready hackathon candidate.
+Prompt 6 full-functionality build is complete on:
 
-Merged workstreams:
+- Branch: `agent/full-functionality-sequential`
+- Worktree: `.worktrees/full-functionality-sequential`
+- Base: `agent/product-data-foundation`
 
-- `agent/demo-product-path`
-- `agent/intake-extraction-review`
-- `agent/outputs-privacy-submission`
+Prompt 6 commits:
 
-Prompt 1-3 integration commit before the final readiness pass:
+- `917cb25 Productize document intake and storage boundary`
+- `f9c784e Productize extraction and fact review`
+- `e3cd0b3 Generate timelines and briefs from reviewed facts`
+- `403ef54 Productize rehearsal and export flows`
 
-- `5bc5c25 Merge output privacy submission layer`
+The branch keeps the synthetic demo working without credentials and adds a memory-backed real case path shaped around the Prompt 5 repository boundary.
 
 ## What Works
 
-- Landing page explains the product and links into the synthetic demo.
-- `/demo/preop` starts the synthetic pre-op case.
-- Review flow shows extracted facts with confidence, source provenance, and confirm/edit/reject controls.
-- Intake flow supports consent-gated case creation, text note intake, PDF/image upload boundaries, source previews, and fixture fallback extraction.
-- Timeline shows chronological events, filters, open uncertainties, and what changed.
-- Brief flow includes GP, consultant, pre-op nurse, family/carer handoff, and 90-second story modes.
-- Rehearsal asks one appointment-prep question at a time, supports typed fallback, and redirects medical-advice requests.
-- Export supports browser print/save-as-PDF fallback, Markdown download, and Markdown copy.
-- Settings/delete flow returns a deletion receipt.
-- `/privacy` explains consent, retention, analytics minimization, and no-medical-advice positioning.
-- `/novus-proof` shows sanitized event coverage and forbidden analytics properties.
-- Devpost draft and demo script exist in `docs/`.
+- Landing and synthetic pre-op demo routes still load without credentials.
+- Consent-gated real case creation works through `POST /api/cases`.
+- Document intake supports text notes, PDF text extraction when selectable text is available, PDF/image manual fallback, source previews, source hashing, and private local memory storage fallback.
+- Extraction runs through `packages/ai/provider.ts` when `FIREWORKS_API_KEY` and `FIREWORKS_MODEL` are set.
+- Without Fireworks credentials, deterministic fallback extracts source-linked facts from the user's provided text instead of inventing synthetic facts for real cases.
+- Review reads and writes persisted confirm/edit/reject states.
+- `POST /api/cases/:caseId/timeline/rebuild` persists timeline events from confirmed, edited, and high-confidence unrejected facts.
+- `POST /api/cases/:caseId/briefs` persists GP, consultant, pre-op nurse, family/carer handoff, and 90-second story brief variants.
+- Brief and timeline pages render repository-backed real cases, while preserving the synthetic demo path.
+- `POST /api/cases/:caseId/rehearsal` persists rehearsal sessions/messages, asks one safe question at a time, redirects unsafe medical-advice prompts, and returns review-gated suggested updates.
+- `POST /api/cases/:caseId/export` returns an export bundle from persisted brief state with Markdown plus browser print/save-as-PDF fallback.
+- Analytics sanitization remains enforced through `packages/events`; raw health content, file names, identifiers, medication names, and symptom names are dropped.
+- Delete returns a receipt and cleans private memory file fallback state.
+
+## Environment Variables
+
+Required for local fixture/memory fallback:
+
+- None.
+
+Optional AI extraction:
+
+- `FIREWORKS_API_KEY`
+- `FIREWORKS_MODEL`
+
+Optional Prisma/Supabase-shaped backend:
+
+- `CLINICBRIEF_DATA_BACKEND=prisma`
+- `DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/clinicbrief`
+
+Default backend remains memory:
+
+- `CLINICBRIEF_DATA_BACKEND=memory`
 
 ## Verified Checks
 
-Run from repo root:
+Run from `.worktrees/full-functionality-sequential`:
 
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
-python3 /Users/abhinavgupta/.codex/skills/webdesign/scripts/website_quality_audit.py /Users/abhinavgupta/Desktop/Mind\ Prod/Clinic\ Brief/apps/web
+python3 /Users/abhinavgupta/.codex/skills/webdesign/scripts/website_quality_audit.py '/Users/abhinavgupta/Desktop/Mind Prod/Clinic Brief/.worktrees/full-functionality-sequential/apps/web'
 ```
 
-Expected state:
+All passed on June 19, 2026.
 
-- Typecheck passes.
-- Lint passes.
-- Tests pass, including event sanitizer and export helper tests.
-- Production build passes.
-- Website quality audit reports `P0=0 P1=0 P2=0`.
+Website quality audit:
 
-## Smoke-Tested Paths
+- `P0=0 P1=0 P2=0`
+
+## Final Smoke Evidence
+
+Synthetic/demo routes returned 200:
 
 - `/`
 - `/demo/preop`
@@ -62,30 +86,41 @@ Expected state:
 - `/privacy`
 - `/novus-proof`
 
-API smoke checks:
+Real memory-backed case smoke passed with case id `aa9afa22-8ea2-4474-9844-f355897e1b49`:
 
-- `POST /api/cases/new`
-- `POST /api/cases/:caseId/documents`
-- `POST /api/cases/:caseId/extract`
-- unsafe extraction prompt returns safety redirect
-- `DELETE /api/cases/:caseId`
-- `POST /api/events` drops unsafe raw medical properties
+- `POST /api/cases`
+- text note intake
+- PDF upload with manual fallback
+- `GET /api/cases/:caseId/documents`
+- fixture fallback extraction from source text
+- unsafe extraction safety redirect
+- confirm/edit/reject fact review
+- timeline rebuild with rejected fact excluded
+- persisted pre-op brief generation with disclaimer and rejected fact excluded
+- rehearsal session start
+- safe rehearsal answer with review-gated suggested update
+- unsafe rehearsal prompt redirected
+- export bundle with `browser_print` PDF fallback and Markdown
+- `POST /api/events` dropped raw health props
+- real case `/review`, `/timeline`, `/brief`, `/rehearsal`, `/export` pages returned 200
+- `DELETE /api/cases/:caseId` returned deleted receipt and removed private memory file fallback
 
-## Remaining Manual Submission Tasks
+## Known Risks
 
-1. Deploy to Vercel and confirm the public URL.
-2. Add real Novus/Pendo install credentials/snippet if available.
-3. Capture the Novus dashboard screenshot.
-4. Record the under-3-minute demo video using `docs/demo-script.md`.
-5. Paste/update `docs/devpost-submission-draft.md` in Devpost.
-6. Optionally add real Supabase/Fireworks credentials. The demo works without them via fixture fallback.
+- The production database adapter is Prisma/Supabase-shaped but not exercised against a live Supabase instance in this Prompt 6 run.
+- Private file storage is an in-memory local adapter unless production storage is wired later.
+- Image OCR remains an honest manual fallback; full OCR is intentionally not implemented.
+- PDF parsing works for selectable text but scanned PDFs still require manual fallback.
+- PDF export uses browser print/save-as-PDF plus Markdown. Server-rendered PDF generation remains a later hardening task.
+- Fireworks behavior is wired and schema-validated, but final acceptance used no Fireworks credentials.
+- Rehearsal suggested updates are review-gated and do not automatically mutate facts.
 
-## Known Prototype Limits
+## Merge Notes
 
-- Case persistence is in-memory. Supabase/Prisma schema boundaries exist but are not wired to production persistence.
-- PDF export uses browser print/save-as-PDF fallback plus Markdown download/copy.
-- PDF/OCR parsing is represented by honest parser boundaries and manual fallback, not full production OCR.
-- The synthetic demo path is the judge-critical path and uses no real patient data.
+- Merge branch `agent/full-functionality-sequential` from the isolated worktree only.
+- Do not merge the parent checkout's `.worktrees/` directory.
+- This branch already includes Prompt 5 via `agent/product-data-foundation`.
+- After merge, rerun the final checks from the destination checkout.
 
 ## Safety Boundary
 
