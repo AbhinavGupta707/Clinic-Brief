@@ -1,3 +1,5 @@
+import { spawnSync } from "node:child_process";
+
 const smokeName = process.argv[2] ?? "memory";
 
 const checks = {
@@ -15,4 +17,19 @@ if (!(smokeName in checks)) {
 
 console.log(`clinicbrief smoke:${smokeName}`);
 console.log(checks[smokeName]);
+
+if (smokeName === "db") {
+  if (!process.env.DATABASE_URL) {
+    console.log("DATABASE_URL is not set, so live Prisma/Postgres smoke is skipped.");
+    console.log("Memory remains the default backend for normal build/test.");
+    process.exit(0);
+  }
+
+  const result = spawnSync("pnpm", ["--filter", "@clinicbrief/db", "smoke:live"], {
+    env: process.env,
+    stdio: "inherit"
+  });
+  process.exit(result.status ?? 1);
+}
+
 console.log("Placeholder contract is installed. Run pnpm typecheck, lint, test, and build for executable verification.");

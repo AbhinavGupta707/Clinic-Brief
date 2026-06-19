@@ -6,10 +6,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "DATABASE_URL=postgresql://clinicbrief:clinicbrief@localhost:5432/clinicbrief prisma validate --schema prisma/schema.prisma && tsc --noEmit",
-    "lint": "DATABASE_URL=postgresql://clinicbrief:clinicbrief@localhost:5432/clinicbrief prisma validate --schema prisma/schema.prisma && tsc --noEmit",
-    "typecheck": "DATABASE_URL=postgresql://clinicbrief:clinicbrief@localhost:5432/clinicbrief prisma validate --schema prisma/schema.prisma && tsc --noEmit",
-    "test": "DATABASE_URL=postgresql://clinicbrief:clinicbrief@localhost:5432/clinicbrief prisma validate --schema prisma/schema.prisma"
+    "build": "pnpm db:validate && tsc --noEmit",
+    "lint": "pnpm db:validate && tsc --noEmit",
+    "typecheck": "pnpm db:validate && tsc --noEmit",
+    "test": "pnpm db:validate",
+    "db:generate": "node ../../scripts/prisma-cli.mjs generate",
+    "db:validate": "node ../../scripts/prisma-cli.mjs validate",
+    "db:push": "node ../../scripts/prisma-cli.mjs push",
+    "db:migrate": "node ../../scripts/prisma-cli.mjs migrate",
+    "smoke:live": "pnpm db:generate && node scripts/smoke-prisma.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0"
