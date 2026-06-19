@@ -53,14 +53,14 @@ export function NewCaseForm() {
         return;
       }
 
-      setStatus("Opening intake...");
+      setStatus("Opening case dashboard...");
       trackEvent(Events.ConsentAccepted, { mode });
       trackEvent(Events.CaseCreated, { mode });
-      const intakeUrl = `/cases/${payload.data.caseId}/intake`;
-      router.push(intakeUrl);
+      const dashboardUrl = `/cases/${payload.data.caseId}`;
+      router.push(dashboardUrl);
       window.setTimeout(() => {
-        if (window.location.pathname !== intakeUrl) {
-          window.location.assign(intakeUrl);
+        if (window.location.pathname !== dashboardUrl) {
+          window.location.assign(dashboardUrl);
         }
       }, 400);
     } catch (caughtError) {
@@ -108,7 +108,7 @@ export function NewCaseForm() {
         type="submit"
       >
         <ClipboardList aria-hidden className="h-5 w-5" />
-        {isSubmitting ? "Creating case..." : "Continue to intake"}
+        {isSubmitting ? "Creating case..." : "Open dashboard"}
       </button>
     </form>
   );
