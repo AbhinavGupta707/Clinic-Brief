@@ -40,6 +40,18 @@ export type HealthDocument = {
   createdAt: string;
 };
 
+export type SourcePreview = {
+  id: string;
+  sourceId: string;
+  sourceType: DocumentType;
+  documentId: string;
+  snippet: string;
+  confidence: number;
+  parser: "pdf" | "image" | "text" | "fixture";
+  needsManualFallback: boolean;
+  createdAt: string;
+};
+
 export type ExtractedFact = {
   id: string;
   caseId: string;
