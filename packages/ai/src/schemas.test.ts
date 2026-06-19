@@ -61,4 +61,45 @@ describe("AI extraction contracts", () => {
 
     expect(parsed.safetyDisclaimer).toBe(REQUIRED_DISCLAIMER);
   });
+
+  it("accepts chronic-specific questions and brief sections", () => {
+    const questionResult = ExtractionResultSchema.parse({
+      facts: [],
+      questions: [
+        {
+          id: "chronic-q-1",
+          priority: "high",
+          question: "Which history items have already been confirmed by a clinician?",
+          whyItMattersForAppointment: "Confirmed history should be separate from conditions being investigated.",
+          answerType: "short_text",
+          chronicFieldId: "reported_confirmed_history"
+        }
+      ]
+    });
+
+    const brief = ClinicBriefOutputSchema.parse({
+      title: "Chronic appointment brief",
+      oneLineReasonForVisit: "Chronic appointment prep from reviewed user-provided facts.",
+      ninetySecondStory: "I want to explain the reviewed timeline, symptoms, and questions clearly.",
+      keyTimeline: [{ dateLabel: "Date not provided", event: "Reviewed chronic history note." }],
+      currentMedications: [],
+      allergiesAndImportantNotes: ["Reported confirmed history: clinician-confirmed asthma."],
+      whatChangedSinceLastAppointment: ["Functional impact: fewer full work days."],
+      questionsForClinician: ["What should I clarify about the symptoms being investigated?"],
+      openUncertainties: ["Confirm wording for investigated conditions before sharing."],
+      sourceCoverage: [{ section: "Reviewed facts", sourceCount: 2 }],
+      chronicSections: {
+        reportedConfirmedHistory: ["Clinician-confirmed asthma."],
+        conditionsBeingInvestigated: ["Possible migraine being assessed."],
+        baselineSymptomsAndFlares: ["Baseline fatigue most days."],
+        medicationAndTreatmentHistory: ["Tried physiotherapy."],
+        functionalImpact: ["Fewer full work days."],
+        appointmentGoals: ["Clarify next appointment questions."]
+      },
+      safetyDisclaimer: REQUIRED_DISCLAIMER
+    });
+
+    expect(questionResult.questions[0]?.chronicFieldId).toBe("reported_confirmed_history");
+    expect(brief.chronicSections?.conditionsBeingInvestigated[0]).toContain("Possible migraine");
+  });
 });

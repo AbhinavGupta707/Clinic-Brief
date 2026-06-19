@@ -6,11 +6,11 @@ import { ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const modes: Array<{ value: CaseMode; label: string }> = [
-  { value: "PREOP", label: "Pre-op" },
-  { value: "GENERAL", label: "General" },
-  { value: "CHRONIC", label: "Ongoing history" },
-  { value: "CARER", label: "Carer-managed" }
+const modes: Array<{ value: CaseMode; label: string; description: string }> = [
+  { value: "PREOP", label: "Pre-op", description: "Surgery-readiness notes, allergies, medicines, and practical support." },
+  { value: "GENERAL", label: "General", description: "A focused brief for a GP, nurse, or other appointment." },
+  { value: "CHRONIC", label: "Chronic / ongoing history", description: "Longitudinal symptoms, flares, functional impact, and questions to discuss." },
+  { value: "CARER", label: "Carer-managed", description: "A consistent handoff when helping someone else prepare." }
 ];
 
 export function NewCaseForm() {
@@ -87,9 +87,12 @@ export function NewCaseForm() {
         <legend className="text-sm font-semibold text-clinic-ink">Appointment context</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           {modes.map((item) => (
-            <label key={item.value} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-clinic-line px-3 py-2 text-sm font-medium text-clinic-muted">
-              <input checked={mode === item.value} name="mode" onChange={() => setMode(item.value)} type="radio" value={item.value} />
-              {item.label}
+            <label key={item.value} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-clinic-line px-3 py-3 text-sm text-clinic-muted">
+              <input checked={mode === item.value} className="mt-1" name="mode" onChange={() => setMode(item.value)} type="radio" value={item.value} />
+              <span className="grid gap-1">
+                <span className="font-semibold text-clinic-ink">{item.label}</span>
+                <span className="leading-5">{item.description}</span>
+              </span>
             </label>
           ))}
         </div>

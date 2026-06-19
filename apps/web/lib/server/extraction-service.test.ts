@@ -33,6 +33,26 @@ describe("extraction service fallback", () => {
     expect(extraction.questions.map((question) => question.question).join(" ")).not.toMatch(/diagnos|treatment/i);
   });
 
+  it("creates chronic fallback questions and separates investigated conditions from confirmed history", () => {
+    const extraction = createSourceTextFallbackExtraction("case-chronic", "CHRONIC", [
+      makeDocument(
+        "doc-1",
+        "Diagnosed asthma in childhood. Possible migraine is being investigated by neurology. Baseline fatigue most days. Flares after busy work weeks affect sleep."
+      )
+    ]);
+
+    expect(extraction.facts.map((fact) => fact.value.chronicFieldId)).toEqual([
+      "reported_confirmed_history",
+      "conditions_being_investigated",
+      "baseline_symptoms",
+      "flares_or_episodes"
+    ]);
+    expect(extraction.facts[0]?.displayText).toContain("User-reported confirmed history");
+    expect(extraction.facts[1]?.displayText).toContain("not confirmed by ClinicBrief");
+    expect(extraction.questions.map((question) => question.chronicFieldId)).toContain("functional_impact");
+    expect(extraction.questions.map((question) => question.question).join(" ")).not.toMatch(/should I take|diagnos|urgent|risk/i);
+  });
+
   it("uses mocked Fireworks output for source-linked extraction", async () => {
     vi.stubEnv("FIREWORKS_API_KEY", "test-key");
     vi.stubEnv("FIREWORKS_MODEL", "accounts/fireworks/models/test");
@@ -66,6 +86,43 @@ describe("extraction service fallback", () => {
     expect(extraction.questions[0]?.id).toBe("q-1");
   });
 
+  it("sends chronic mode extraction constraints to Fireworks", async () => {
+    vi.stubEnv("FIREWORKS_API_KEY", "test-key");
+    vi.stubEnv("FIREWORKS_MODEL", "accounts/fireworks/models/test");
+    const fetchMock = mockFireworksResponse({
+      facts: [
+        {
+          sourceDocId: "doc-1",
+          category: "HISTORY_ITEM",
+          displayText: "User reports possible migraine is being investigated.",
+          value: { text: "possible migraine is being investigated", chronicFieldId: "conditions_being_investigated" },
+          confidence: 0.86,
+          sourceQuote: "possible migraine is being investigated"
+        }
+      ],
+      questions: [
+        {
+          id: "q-chronic-1",
+          priority: "high",
+          question: "What is the baseline symptom pattern?",
+          whyItMattersForAppointment: "Baseline helps describe a longitudinal story.",
+          answerType: "short_text",
+          chronicFieldId: "baseline_symptoms"
+        }
+      ]
+    });
+
+    const extraction = await buildCaseExtraction(makeRecord("Possible migraine is being investigated.", "CHRONIC"));
+    const calls = fetchMock.mock.calls as unknown as Array<[unknown, RequestInit | undefined]>;
+    const body = JSON.parse(String(calls[0]?.[1]?.body)) as { messages: Array<{ content: string }> };
+    const userPrompt = body.messages.find((message) => message.content.includes("caseMode"))?.content ?? "";
+
+    expect(extraction.source).toBe("fireworks");
+    expect(userPrompt).toContain('"caseMode":"CHRONIC"');
+    expect(userPrompt).toContain("conditions_being_investigated");
+    expect(extraction.questions[0]?.chronicFieldId).toBe("baseline_symptoms");
+  });
+
   it("falls back safely when the provider fails", async () => {
     vi.stubEnv("FIREWORKS_API_KEY", "test-key");
     vi.stubEnv("FIREWORKS_MODEL", "accounts/fireworks/models/test");
@@ -90,13 +147,13 @@ function makeDocument(id: string, text: string) {
   };
 }
 
-function makeRecord(text: string): ClinicCaseSnapshot {
+function makeRecord(text: string, mode: ClinicCaseSnapshot["mode"] = "PREOP"): ClinicCaseSnapshot {
   const now = "2026-06-19T00:00:00.000Z";
 
   return {
     id: "case-test",
     title: "Test case",
-    mode: "PREOP",
+    mode,
     status: "INTAKE_STARTED",
     consentAccepted: true,
     consentedAt: now,
@@ -125,8 +182,7 @@ function makeRecord(text: string): ClinicCaseSnapshot {
 }
 
 function mockFireworksResponse(content: unknown) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }), { status: 200 }))
-  );
+  const fetchMock = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
 }

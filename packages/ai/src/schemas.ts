@@ -18,7 +18,20 @@ export const MissingQuestionSchema = z.object({
   priority: z.enum(["low", "medium", "high"]),
   question: z.string().trim().min(1).max(240),
   whyItMattersForAppointment: z.string().trim().min(1).max(300),
-  answerType: z.enum(["short_text", "date", "yes_no", "medication", "allergy"])
+  answerType: z.enum(["short_text", "date", "yes_no", "medication", "allergy"]),
+  chronicFieldId: z
+    .enum([
+      "reported_confirmed_history",
+      "conditions_being_investigated",
+      "baseline_symptoms",
+      "flares_or_episodes",
+      "current_medications_and_treatments_tried",
+      "functional_impact",
+      "possible_triggers_to_discuss",
+      "changed_since_last_appointment",
+      "questions_for_clinician"
+    ])
+    .optional()
 }).strict();
 
 const BriefTimelineItemSchema = z.object({ dateLabel: z.string().trim().min(1).max(80), event: z.string().trim().min(1).max(500) }).strict();
@@ -34,6 +47,17 @@ const BriefMedicationSchema = z
 
 const BriefSourceCoverageSchema = z.object({ section: z.string().trim().min(1).max(120), sourceCount: z.number().int().min(0) }).strict();
 
+const ChronicBriefSectionsSchema = z
+  .object({
+    reportedConfirmedHistory: z.array(z.string().trim().min(1).max(260)).max(10),
+    conditionsBeingInvestigated: z.array(z.string().trim().min(1).max(260)).max(10),
+    baselineSymptomsAndFlares: z.array(z.string().trim().min(1).max(320)).max(12),
+    medicationAndTreatmentHistory: z.array(z.string().trim().min(1).max(320)).max(12),
+    functionalImpact: z.array(z.string().trim().min(1).max(320)).max(10),
+    appointmentGoals: z.array(z.string().trim().min(1).max(260)).max(8)
+  })
+  .strict();
+
 export const ClinicBriefOutputSchema = z.object({
   title: z.string().trim().min(1).max(160),
   oneLineReasonForVisit: z.string().trim().min(1).max(400),
@@ -45,7 +69,8 @@ export const ClinicBriefOutputSchema = z.object({
   questionsForClinician: z.array(z.string().trim().min(1).max(260)).max(12),
   openUncertainties: z.array(z.string().trim().min(1).max(260)).max(12),
   sourceCoverage: z.array(BriefSourceCoverageSchema).max(10),
-  safetyDisclaimer: z.literal(REQUIRED_DISCLAIMER)
+  safetyDisclaimer: z.literal(REQUIRED_DISCLAIMER),
+  chronicSections: ChronicBriefSectionsSchema.optional()
 }).strict();
 
 export const RehearsalSuggestedFactUpdateSchema = z.object({
