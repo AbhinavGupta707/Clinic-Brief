@@ -14,6 +14,10 @@ describe("sanitizeEventProps", () => {
         medicationName: "filtered",
         symptomName: "filtered",
         fileName: "filtered",
+        rehearsalPrompt: "Should I stop this medication?",
+        assistantResponse: "Filtered answer text",
+        messageText: "Filtered rehearsal message",
+        voiceTranscript: "Filtered transcript",
         caseId: "case-123"
       })
     ).toEqual({

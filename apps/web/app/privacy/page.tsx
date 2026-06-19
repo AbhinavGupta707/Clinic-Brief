@@ -26,7 +26,12 @@ const privacyPrinciples = [
   {
     icon: BarChart3,
     title: "Analytics minimization",
-    body: "Novus/Pendo events use mode, counts, confidence bands, and brief type only. Raw health text, source quotes, file names, symptoms, and medication names are filtered."
+    body: "Novus/Pendo events use mode, counts, confidence bands, and brief type only. Raw health text, source quotes, file names, symptoms, medication names, prompts, responses, messages, and transcripts are filtered."
+  },
+  {
+    icon: ShieldCheck,
+    title: "Replay and AI tracking limits",
+    body: "Novus Session Replay must run in maximum privacy with all inputs and text masked. AI Agent Tracking stays disabled for rehearsal unless prompts and responses are masked before capture."
   }
 ];
 

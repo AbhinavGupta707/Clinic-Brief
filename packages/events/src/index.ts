@@ -23,7 +23,18 @@ export type SanitizedEventProps = Record<string, string | number | boolean | nul
 export const allowedEventPropertyPolicy = {
   explicitKeys: ["mode", "briefType", "confidenceBand"],
   countSuffix: "Count",
-  forbiddenExamples: ["rawText", "sourceQuote", "medicationName", "symptomName", "fileName", "freeTextNarrative"]
+  forbiddenExamples: [
+    "rawText",
+    "sourceQuote",
+    "medicationName",
+    "symptomName",
+    "fileName",
+    "freeTextNarrative",
+    "rehearsalPrompt",
+    "assistantResponse",
+    "messageText",
+    "voiceTranscript"
+  ]
 } as const;
 
 const eventNames = new Set<string>(Object.values(Events));
@@ -37,9 +48,23 @@ const forbiddenPropertyPatterns = [
   /medicationName/i,
   /fileName/i,
   /documentName/i,
+  /prompt/i,
+  /response/i,
+  /message/i,
+  /transcript/i,
   /identifier/i,
   /\bid\b/i
 ];
+
+type PendoAgent = {
+  track?: (name: string, props?: SanitizedEventProps) => void;
+};
+
+declare global {
+  interface Window {
+    pendo?: PendoAgent;
+  }
+}
 
 export function isClinicEventName(value: unknown): value is ClinicEventName {
   return typeof value === "string" && eventNames.has(value);
@@ -84,6 +109,8 @@ export function trackEvent(name: ClinicEventName, props?: Record<string, unknown
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, props: safeProps })
   }).catch(() => undefined);
+
+  window.pendo?.track?.(name, safeProps);
 
   return safeProps;
 }

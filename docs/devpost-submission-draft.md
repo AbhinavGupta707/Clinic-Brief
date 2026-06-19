@@ -8,9 +8,17 @@ ClinicBrief
 
 Tell your health story once. Bring the right version to every appointment.
 
+## Public URL
+
+TODO: `https://YOUR-VERCEL-URL`
+
+## Novus screenshot
+
+TODO: Upload a screenshot from the Novus/Pendo dashboard after the deployed ClinicBrief URL has received sanitized demo events.
+
 ## What it does
 
-ClinicBrief helps a patient or carer turn scattered appointment context into a clear, reviewable brief. The demo uses a synthetic pre-op case with document summaries, extracted facts, missing-context questions, brief modes, a family/carer handoff card, a 90-second story, appointment rehearsal, PDF/Markdown export fallback, delete controls, and Novus-safe analytics proof.
+ClinicBrief helps a patient or carer turn scattered appointment context into a clear, reviewable brief they control. The demo uses a synthetic pre-op case with document summaries, extracted facts, missing-context questions, brief modes, a family/carer handoff card, a 90-second story, appointment rehearsal, export fallback, delete controls, and Novus-safe analytics proof.
 
 ClinicBrief is not a diagnostic or clinical-decision product. It organizes user-provided information for appointment preparation only.
 
@@ -34,11 +42,12 @@ Patients often repeat their story to multiple clinicians and may forget importan
 - Fireworks-ready provider wrapper with Zod validation
 - Fixture fallback for the synthetic demo
 - Markdown and browser print-to-PDF export fallback
-- Novus/Pendo-safe event wrapper
+- Novus/Pendo-safe event wrapper with optional `window.pendo.track` forwarding after sanitization
+- Vercel deployment target
 
 ## Privacy and safety
 
-ClinicBrief asks for consent before processing health information, uses synthetic demo data by default, includes delete-all-data behavior, and filters analytics so Novus receives only mode, counts, confidence bands, and brief type. It does not send raw health text, source quotes, medication names, symptom names, document names, or identifiers to analytics.
+ClinicBrief asks for consent before processing health information, uses synthetic demo data by default, includes delete-all-data behavior, and filters analytics so Novus receives only mode, counts, confidence bands, and brief type. It does not send raw health text, source quotes, medication names, symptom names, document names, prompts, responses, transcripts, messages, or identifiers to analytics. Novus Session Replay should be configured to maximum privacy with all inputs and text masked; AI Agent Tracking for rehearsal should stay disabled unless prompts and responses are masked before capture.
 
 Required safety copy appears on landing, brief, and export surfaces:
 
@@ -50,19 +59,16 @@ The clearest product value came from showing the transformation, not from a gene
 
 ## Demo video outline
 
-1. Show landing safety copy.
-2. Start the synthetic pre-op case.
-3. Show extracted facts and missing-context questions.
-4. Generate the pre-op brief, handoff card, and 90-second story.
-5. Practice one rehearsal question and show a medical-advice redirect.
-6. Export with PDF/Markdown fallback.
-7. Delete the case.
-8. Show `/novus-proof` sanitized events.
+1. Open the public URL and show the landing safety copy.
+2. Start the synthetic pre-op case and show the source documents becoming reviewable facts.
+3. Show the timeline, missing-context questions, pre-op brief, handoff card, and 90-second story.
+4. Practice one rehearsal question, then show a prohibited medical-advice prompt being redirected.
+5. Export with print/save-as-PDF plus Markdown fallback, delete the case, and show `/novus-proof`.
 
 ## Remaining manual submission steps
 
 - Deploy the public Vercel URL.
-- Add the final Novus install snippet if credentials are available.
-- Capture the Novus dashboard screenshot.
+- Install the final Novus/Pendo dashboard snippet on the deployed URL.
+- Capture the Novus dashboard screenshot showing sanitized activity.
 - Record the under-3-minute demo video.
-- Paste this draft into Devpost and update the public URL.
+- Paste this draft into Devpost and replace the URL/screenshot placeholders.

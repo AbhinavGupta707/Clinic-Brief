@@ -56,9 +56,32 @@ pnpm build
 
 The scaffold includes deterministic fixture fallbacks so the demo path can work before Fireworks, Supabase, or Novus credentials are wired.
 
+## Vercel Deployment
+
+For the hackathon demo deploy, create a Vercel project from the repo with:
+
+- Root directory: `apps/web`
+- Framework preset: Next.js
+- Install command: `pnpm install --frozen-lockfile`
+- Build command: `pnpm build`
+- Node.js: 20.x or newer
+
+Minimum env for a public demo:
+
+```bash
+CLINICBRIEF_DATA_BACKEND=memory
+NEXT_PUBLIC_APP_URL=https://YOUR-VERCEL-URL
+```
+
+The demo does not require Supabase, Fireworks, or Novus credentials to build. See `docs/deployment-novus-readiness.md` for the full deployment, Novus, persistence, storage, PDF, and OCR decision record.
+
 ## Data Backend
 
 Local development defaults to `CLINICBRIEF_DATA_BACKEND=memory`, which keeps the synthetic demo and upload/review flow working without database credentials. Set `CLINICBRIEF_DATA_BACKEND=prisma` with `DATABASE_URL` to use the Prisma/Supabase-shaped repository boundary. See `docs/product-data-foundation.md`.
+
+## Novus Eligibility
+
+ClinicBrief is Novus-ready but does not fake installation. Install the real dashboard-generated Novus/Pendo snippet during deployment, configure Session Replay to maximum privacy with all inputs and text masked, keep AI Agent Tracking disabled for rehearsal unless prompts and responses are masked, then capture the dashboard screenshot after running the deployed demo. `/novus-proof` shows the sanitized event contract.
 
 ## Final Integration
 

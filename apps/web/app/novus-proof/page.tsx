@@ -3,6 +3,8 @@ import { allowedEventPropertyPolicy, novusEventCoverage, sanitizedEventExample }
 import { AppShell } from "../../components/app-shell";
 
 export default function NovusProofPage() {
+  const hasNovusClientPlaceholder = Boolean(process.env.NEXT_PUBLIC_NOVUS_CLIENT_KEY || process.env.NEXT_PUBLIC_PENDO_API_KEY);
+
   return (
     <AppShell eyebrow="Submission proof" title="Novus-safe analytics proof">
       <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
@@ -76,10 +78,28 @@ export default function NovusProofPage() {
           </section>
 
           <section className="rounded-md border border-amber-200 bg-amber-50 p-5">
-            <h2 className="font-semibold text-amber-900">Novus install note</h2>
+            <h2 className="font-semibold text-amber-900">Novus install status</h2>
             <p className="mt-2 text-sm leading-6 text-amber-900">
-              Add the final Novus snippet and dashboard screenshot during deployment. This page documents the safe event contract that
-              should be wired to the installed snippet.
+              {hasNovusClientPlaceholder
+                ? "A public Novus/Pendo key placeholder is present. Confirm the dashboard-generated snippet is installed before taking the screenshot."
+                : "No real Novus/Pendo snippet or public key is present in this local build. Install it from the Novus dashboard before taking the screenshot."}
+            </p>
+          </section>
+
+          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+            <h2 className="font-semibold text-clinic-ink">Required dashboard settings</h2>
+            <ul className="mt-3 grid gap-2 text-sm leading-6 text-clinic-muted">
+              <li>Session Replay: maximum privacy, with all inputs and text masked.</li>
+              <li>Custom events: route and funnel counts only, using the sanitizer shown here.</li>
+              <li>AI Agent Tracking: leave disabled for rehearsal unless prompts and responses are masked before capture.</li>
+            </ul>
+          </section>
+
+          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+            <h2 className="font-semibold text-clinic-ink">Screenshot placeholder</h2>
+            <p className="mt-2 text-sm leading-6 text-clinic-muted">
+              Capture the Novus dashboard after visiting the demo flow on the deployed URL. The screenshot should show this app receiving
+              events, not sensitive health text.
             </p>
           </section>
         </aside>
