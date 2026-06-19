@@ -2,11 +2,14 @@
 
 ## Current Status
 
-Prompt 6 full-functionality build is complete on:
+Prompt 7 main integration is complete. `main` now contains Prompt 5 and Prompt 6 full functionality.
 
-- Branch: `agent/full-functionality-sequential`
-- Worktree: `.worktrees/full-functionality-sequential`
-- Base: `agent/product-data-foundation`
+Integration details:
+
+- Source branch: `agent/full-functionality-sequential`
+- Merge style: fast-forward into `main`
+- Prompt 6 source worktree: `.worktrees/full-functionality-sequential`
+- Prompt 6 base: `agent/product-data-foundation`
 
 Prompt 6 commits:
 
@@ -15,7 +18,7 @@ Prompt 6 commits:
 - `e3cd0b3 Generate timelines and briefs from reviewed facts`
 - `403ef54 Productize rehearsal and export flows`
 
-The branch keeps the synthetic demo working without credentials and adds a memory-backed real case path shaped around the Prompt 5 repository boundary.
+`main` keeps the synthetic demo working without credentials and adds a memory-backed real case path shaped around the Prompt 5 repository boundary.
 
 ## What Works
 
@@ -55,17 +58,17 @@ Default backend remains memory:
 
 ## Verified Checks
 
-Run from `.worktrees/full-functionality-sequential`:
+Run from repo root on `main`:
 
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
-python3 /Users/abhinavgupta/.codex/skills/webdesign/scripts/website_quality_audit.py '/Users/abhinavgupta/Desktop/Mind Prod/Clinic Brief/.worktrees/full-functionality-sequential/apps/web'
+python3 /Users/abhinavgupta/.codex/skills/webdesign/scripts/website_quality_audit.py '/Users/abhinavgupta/Desktop/Mind Prod/Clinic Brief/apps/web'
 ```
 
-All passed on June 19, 2026.
+All passed on June 19, 2026 after merging to `main`.
 
 Website quality audit:
 
@@ -86,7 +89,7 @@ Synthetic/demo routes returned 200:
 - `/privacy`
 - `/novus-proof`
 
-Real memory-backed case smoke passed with case id `aa9afa22-8ea2-4474-9844-f355897e1b49`:
+Real memory-backed case smoke passed from `main` with case id `df53937d-f349-4165-842c-c741d0fcc2c4`:
 
 - `POST /api/cases`
 - text note intake
@@ -115,12 +118,20 @@ Real memory-backed case smoke passed with case id `aa9afa22-8ea2-4474-9844-f3558
 - Fireworks behavior is wired and schema-validated, but final acceptance used no Fireworks credentials.
 - Rehearsal suggested updates are review-gated and do not automatically mutate facts.
 
+## Remaining Manual Submission Tasks
+
+1. Deploy `main` to Vercel and confirm the public URL.
+2. Add real Novus/Pendo install credentials/snippet if available.
+3. Capture the Novus dashboard screenshot.
+4. Record the under-3-minute demo video using `docs/demo-script.md`.
+5. Paste/update `docs/devpost-submission-draft.md` in Devpost.
+6. Optionally add real Supabase/Fireworks credentials. The demo and local real-case path work without them via memory and fixture/source-text fallback.
+
 ## Merge Notes
 
-- Merge branch `agent/full-functionality-sequential` from the isolated worktree only.
-- Do not merge the parent checkout's `.worktrees/` directory.
-- This branch already includes Prompt 5 via `agent/product-data-foundation`.
-- After merge, rerun the final checks from the destination checkout.
+- `agent/full-functionality-sequential` has been fast-forwarded into `main`.
+- `main` final checks and full smoke passed after the merge.
+- The isolated `.worktrees/` directory should not be deployed or committed.
 
 ## Safety Boundary
 
