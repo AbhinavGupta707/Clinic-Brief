@@ -2,6 +2,14 @@
 
 Use this document for the next build stage after Prompt 8-9. The goal is to move ClinicBrief from a strong demo MVP with safe fallbacks into a more fully agentic, durable product path before adding Novus.
 
+For the chronic/live-flow improvement pass, also read:
+
+```txt
+docs/chronic-live-flow-improvement-plan.md
+```
+
+That plan is the execution source for guided live intake, chronic mode, the case dashboard, browser speech-to-text/text-to-speech, review-first pattern cards, and final live-flow hardening.
+
 ## Current Baseline
 
 `main` is pushed to GitHub at:
