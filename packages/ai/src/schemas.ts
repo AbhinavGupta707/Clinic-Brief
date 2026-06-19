@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const ExtractedFactSchema = z.object({
+  sourceDocId: z.string().optional(),
   category: z.enum(["MEDICATION", "ALLERGY", "SYMPTOM", "APPOINTMENT", "TEST_RESULT", "PROCEDURE", "HISTORY_ITEM", "QUESTION", "CONTACT"]),
   displayText: z.string(),
   date: z.string().optional(),
