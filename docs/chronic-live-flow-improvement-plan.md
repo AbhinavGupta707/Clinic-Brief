@@ -3,6 +3,8 @@
 Status: implementation plan for the next ClinicBrief product pass.
 Date: 2026-06-19.
 
+Workstream 0 foundation contracts are defined in `packages/types/src/live-flow.ts` and exported from `@clinicbrief/types`.
+
 ## Purpose
 
 This pass turns ClinicBrief from a reliable appointment-brief MVP into a stronger live product for people with complex or chronic health stories.
@@ -407,6 +409,16 @@ Use one sequential foundation session first, then parallelize.
 Purpose:
 
 Define shared types, mode names, route strategy, speech utility contracts, and dashboard state so parallel agents do not collide.
+
+Contract outputs:
+
+- `CASE_MODES` confirms `CHRONIC` alongside existing case modes.
+- `HealthDocument.metadata` and `SourcePreview.metadata` support guided intake, uploads, text notes, voice transcripts, and synthetic sample source metadata.
+- Guided intake metadata captures step ID, source label, capture method, optional chronic field/focus IDs, user review state, and the invariant that browser speech stores no audio.
+- `CHRONIC_APPOINTMENT_FOCUS_OPTIONS` and `CHRONIC_INTAKE_FIELDS` provide shared chronic-mode vocabulary for downstream intake, extraction, and brief work.
+- `PatternCard` represents a review-first possible pattern to discuss, with source fact IDs, confidence, safe labels, and `requiresUserReview: true`.
+- `CaseDashboardState` defines workflow states, next action, counts, top points, open questions, source coverage, and safety disclaimer requirement for `/cases/[caseId]`.
+- `BrowserSpeechFeatureContract` defines browser speech-to-text/text-to-speech behavior: user-triggered, typed fallback required, no server audio processing, no audio storage, and transcript review before save for STT.
 
 Owned files:
 
@@ -1000,4 +1012,3 @@ Verification:
 - credentialed smokes when env is present
 - website quality audit
 - manual production smoke
-

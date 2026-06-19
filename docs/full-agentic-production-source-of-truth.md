@@ -67,6 +67,22 @@ Make the normal real-case path agentic and production-shaped:
 
 Novus should still be installed only after this product path is tested.
 
+## Chronic Live-Flow Foundation Contracts
+
+Workstream 0 defines shared contracts in `@clinicbrief/types` so later UI, AI, persistence, and export workstreams can coordinate without re-shaping data ad hoc.
+
+Stable contract exports:
+
+- `CASE_MODES` and `CaseMode` include `CHRONIC`.
+- `HealthDocument.metadata` and `SourcePreview.metadata` can carry source metadata for guided intake, uploaded documents, text notes, voice transcripts, and synthetic samples.
+- Guided intake metadata uses source labels such as "Guided intake: appointment goal", stores user-reviewed text only, and keeps `storesAudio: false` for browser speech transcripts.
+- `CHRONIC_APPOINTMENT_FOCUS_OPTIONS` and `CHRONIC_INTAKE_FIELDS` separate reported confirmed history, conditions being investigated, baseline symptoms, flares, functional impact, possible triggers to discuss, changes since last appointment, and clinician questions.
+- `PatternCard` is review-first: it represents an appointment-prep hypothesis, requires `requiresUserReview: true`, cites source fact IDs, and must not enter final briefs unless confirmed or edited by the user.
+- `CaseDashboardState` captures workflow status, counts, next action, top points, open questions, source coverage, and `safetyDisclaimerRequired: true`.
+- `BrowserSpeechFeatureContract` requires user-triggered browser speech, typed fallback, no server-side audio processing, no audio storage, and transcript review before save for speech-to-text.
+
+These contracts do not implement UI or persistence behavior by themselves. Downstream workstreams should derive state from existing repository data and keep final outputs limited to user-reviewed facts, answers, and pattern cards.
+
 ## Non-Negotiable Safety Boundary
 
 ClinicBrief organizes user-provided information for appointment preparation only.
