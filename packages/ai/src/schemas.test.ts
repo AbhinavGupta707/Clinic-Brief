@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ExtractionResultSchema, getSafetyRedirect } from "./index";
+import { ExtractionResultSchema, RehearsalAgentOutputSchema, getSafetyRedirect } from "./index";
 
 describe("AI extraction contracts", () => {
   it("accepts source-linked extraction output", () => {
@@ -23,5 +23,22 @@ describe("AI extraction contracts", () => {
 
   it("redirects prohibited medical advice requests", () => {
     expect(getSafetyRedirect("Should I stop taking this medicine?")).toContain("cannot diagnose or recommend treatment");
+  });
+
+  it("accepts rehearsal output that requires user review before updating facts", () => {
+    const parsed = RehearsalAgentOutputSchema.parse({
+      assistantMessage: "Thank you. Next question: What changed since the last appointment?",
+      blocked: false,
+      suggestedFactUpdates: [
+        {
+          type: "missing_question_answer",
+          questionId: "question-1",
+          requiresUserReview: true,
+          proposedDisplayText: "Rehearsal answer captured for: appointment goal"
+        }
+      ]
+    });
+
+    expect(parsed.suggestedFactUpdates?.[0]?.requiresUserReview).toBe(true);
   });
 });

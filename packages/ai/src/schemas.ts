@@ -33,6 +33,19 @@ export const ClinicBriefOutputSchema = z.object({
   safetyDisclaimer: z.string()
 });
 
+export const RehearsalSuggestedFactUpdateSchema = z.object({
+  type: z.literal("missing_question_answer"),
+  questionId: z.string(),
+  requiresUserReview: z.literal(true),
+  proposedDisplayText: z.string()
+});
+
+export const RehearsalAgentOutputSchema = z.object({
+  assistantMessage: z.string(),
+  blocked: z.boolean(),
+  suggestedFactUpdates: z.array(RehearsalSuggestedFactUpdateSchema).optional()
+});
+
 export const ExtractionResultSchema = z.object({
   facts: z.array(ExtractedFactSchema),
   questions: z.array(MissingQuestionSchema)
@@ -40,3 +53,4 @@ export const ExtractionResultSchema = z.object({
 
 export type ExtractedFactInput = z.infer<typeof ExtractedFactSchema>;
 export type ExtractionResult = z.infer<typeof ExtractionResultSchema>;
+export type RehearsalAgentOutput = z.infer<typeof RehearsalAgentOutputSchema>;

@@ -70,6 +70,7 @@ Minimum env for a public demo:
 
 ```bash
 CLINICBRIEF_DATA_BACKEND=memory
+CLINICBRIEF_STORAGE_BACKEND=memory
 NEXT_PUBLIC_APP_URL=https://YOUR-VERCEL-URL
 ```
 
@@ -78,6 +79,26 @@ The demo does not require Supabase, Fireworks, or Novus credentials to build. Se
 ## Data Backend
 
 Local development defaults to `CLINICBRIEF_DATA_BACKEND=memory`, which keeps the synthetic demo and upload/review flow working without database credentials. Set `CLINICBRIEF_DATA_BACKEND=prisma` with `DATABASE_URL` to use the Prisma/Supabase-shaped repository boundary. See `docs/product-data-foundation.md`.
+
+## Runtime Readiness
+
+`GET /api/health` and `GET /api/system-readiness` return configured/fallback/misconfigured state for app URL, AI, database, storage, and Novus without exposing secret values. Missing Fireworks, Supabase, or Novus credentials are reported as fallback/unconfigured unless their backend has explicitly been selected.
+
+Smoke script contracts are available for later workstreams:
+
+```bash
+pnpm smoke:memory
+pnpm smoke:ai
+pnpm smoke:db
+pnpm smoke:storage
+pnpm smoke:full
+```
+
+These are placeholders until the final integration branch wires executable provider-backed smoke flows.
+
+## Storage Backend
+
+Local development defaults to `CLINICBRIEF_STORAGE_BACKEND=memory`, which stores private upload bytes in process memory and supports delete-by-case cleanup. Set `CLINICBRIEF_STORAGE_BACKEND=supabase` with `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET` when the Supabase private storage adapter lands. Do not expose the service-role key client-side.
 
 ## Novus Eligibility
 

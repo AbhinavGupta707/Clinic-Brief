@@ -1,11 +1,7 @@
 import { getSafetyRedirect } from "@clinicbrief/ai";
-import type { MissingQuestion, RehearsalMessage, RehearsalSession } from "@clinicbrief/types";
+import type { MissingQuestion, RehearsalAgentOutput, RehearsalMessage, RehearsalSession } from "@clinicbrief/types";
 
-export type RehearsalReply = {
-  assistantMessage: string;
-  blocked: boolean;
-  suggestedFactUpdates?: Array<Record<string, unknown>>;
-};
+export type RehearsalReply = RehearsalAgentOutput;
 
 export function buildInitialRehearsalMessage(questions: MissingQuestion[]): string {
   const firstQuestion = questions[0]?.question ?? "What would you like to make sure you say at the appointment?";

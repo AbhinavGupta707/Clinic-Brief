@@ -8,6 +8,11 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
+    "smoke:memory": "node scripts/smoke-check.mjs memory",
+    "smoke:ai": "node scripts/smoke-check.mjs ai",
+    "smoke:db": "node scripts/smoke-check.mjs db",
+    "smoke:storage": "node scripts/smoke-check.mjs storage",
+    "smoke:full": "node scripts/smoke-check.mjs full",
     "format": "prettier --check ."
   },
   "devDependencies": {

@@ -17,6 +17,7 @@ Required env for a no-credential demo deploy:
 
 ```bash
 CLINICBRIEF_DATA_BACKEND=memory
+CLINICBRIEF_STORAGE_BACKEND=memory
 NEXT_PUBLIC_APP_URL=https://YOUR-VERCEL-URL
 ```
 
@@ -24,6 +25,7 @@ Optional production env:
 
 ```bash
 CLINICBRIEF_DATA_BACKEND=prisma
+CLINICBRIEF_STORAGE_BACKEND=supabase
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/clinicbrief
 FIREWORKS_API_KEY=...
 FIREWORKS_MODEL=accounts/fireworks/models/llama-v3p1-70b-instruct
@@ -63,6 +65,31 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/clinicbrief
 ```
 
 Private cloud file storage is not faked. The current storage adapter uses private in-memory URLs and delete cleanup for the prototype path. Production storage should implement a Supabase Storage adapter with private bucket writes, signed reads only when needed, and delete-by-case cleanup.
+
+Storage backend selection is explicit:
+
+```bash
+CLINICBRIEF_STORAGE_BACKEND=memory
+CLINICBRIEF_STORAGE_BACKEND=supabase
+```
+
+`/api/health` and `/api/system-readiness` report whether storage is using the private memory fallback or whether Supabase storage has been selected with required env present. The readiness payload lists env variable names only and never returns secret values, bucket names, object keys, file names, source text, or source quotes.
+
+## Readiness And Smoke Contracts
+
+The readiness endpoints classify app URL, AI, database, storage, and Novus as configured, fallback, misconfigured, or unconfigured. Missing Fireworks credentials are a safe fallback; selecting Prisma without `DATABASE_URL` or Supabase storage without required private storage env is misconfigured.
+
+Foundation smoke script placeholders are installed:
+
+```bash
+pnpm smoke:memory
+pnpm smoke:ai
+pnpm smoke:db
+pnpm smoke:storage
+pnpm smoke:full
+```
+
+Later workstreams should replace placeholder internals with executable checks while preserving these script names.
 
 ## PDF And OCR
 

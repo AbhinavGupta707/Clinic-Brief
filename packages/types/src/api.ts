@@ -1,5 +1,6 @@
 import type { AppointmentBrief, BriefType, CaseMode, ClinicCaseSnapshot, DeleteCaseReceipt, DocumentType, ExtractedFact, HealthDocument, RehearsalSession, SourcePreview, TimelineEvent } from "./clinic";
-import type { MissingQuestion } from "./extraction";
+import type { MissingQuestion, RehearsalMode, RehearsalSuggestedFactUpdate } from "./extraction";
+import type { RuntimeReadiness } from "./runtime";
 
 export type ApiError = {
   code: string;
@@ -79,14 +80,16 @@ export type CreateBriefResponse = {
 export type RehearsalMessageRequest = {
   sessionId?: string;
   message: string;
-  mode: "PREOP_NURSE" | "CONSULTANT" | "GP";
+  mode: RehearsalMode;
 };
 
 export type RehearsalMessageResponse = {
   sessionId: string;
   session: RehearsalSession;
   assistantMessage: string;
-  suggestedFactUpdates?: Array<Record<string, unknown>>;
+  suggestedFactUpdates?: RehearsalSuggestedFactUpdate[];
 };
 
 export type DeleteCaseResponse = DeleteCaseReceipt;
+
+export type SystemReadinessResponse = RuntimeReadiness;

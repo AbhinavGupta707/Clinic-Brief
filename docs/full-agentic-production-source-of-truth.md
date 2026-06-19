@@ -83,6 +83,7 @@ Minimum local fallback:
 
 ```bash
 CLINICBRIEF_DATA_BACKEND=memory
+CLINICBRIEF_STORAGE_BACKEND=memory
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -109,6 +110,25 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_STORAGE_BUCKET=clinicbrief
 ```
+
+Runtime readiness:
+
+- `GET /api/health`
+- `GET /api/system-readiness`
+
+Both endpoints return app URL, AI, database, storage, and Novus configured/fallback/misconfigured/unconfigured state without exposing secret values. Missing Fireworks credentials are a safe fallback. `CLINICBRIEF_DATA_BACKEND=prisma` without `DATABASE_URL` is misconfigured. `CLINICBRIEF_STORAGE_BACKEND=supabase` without `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, or `SUPABASE_STORAGE_BUCKET` is misconfigured.
+
+Smoke script contract:
+
+```bash
+pnpm smoke:memory
+pnpm smoke:ai
+pnpm smoke:db
+pnpm smoke:storage
+pnpm smoke:full
+```
+
+These names are stable. Foundation installs placeholders; downstream workstreams should make them executable for their owned backend/provider paths.
 
 Novus, later:
 
@@ -152,6 +172,14 @@ Owns:
 - smoke script skeleton.
 - shared AI schemas/types if needed.
 - package scripts.
+
+Foundation branch `agent/full-agentic-foundation` establishes these contracts:
+
+- `apps/web/lib/server/runtime-config.ts` is the source for safe runtime readiness.
+- `/api/health` and `/api/system-readiness` expose readiness for agents, deploy checks, and smoke scripts.
+- `CLINICBRIEF_STORAGE_BACKEND` is the storage selector with `memory` fallback and future `supabase` backend.
+- Shared AI schemas include extraction, brief output, and rehearsal output requiring user review before proposed fact updates become case facts.
+- Smoke script names are reserved at the root package level.
 
 ### AI Agentic Path
 
@@ -227,6 +255,7 @@ Agentic mode:
 - Fireworks extraction returns schema-valid facts/questions.
 - Fireworks brief generation returns schema-valid brief with disclaimer.
 - Fireworks rehearsal asks one appointment-prep question at a time.
+- Rehearsal fact updates use the shared `missing_question_answer` shape and remain `requiresUserReview: true`.
 - unsafe AI prompts are redirected before or during provider call.
 - provider failure falls back safely.
 

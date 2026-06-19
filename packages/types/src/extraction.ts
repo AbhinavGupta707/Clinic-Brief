@@ -19,3 +19,18 @@ export type ClinicBriefOutput = {
   sourceCoverage: Array<{ section: string; sourceCount: number }>;
   safetyDisclaimer: string;
 };
+
+export type RehearsalMode = "PREOP_NURSE" | "CONSULTANT" | "GP";
+
+export type RehearsalSuggestedFactUpdate = {
+  type: "missing_question_answer";
+  questionId: string;
+  requiresUserReview: true;
+  proposedDisplayText: string;
+};
+
+export type RehearsalAgentOutput = {
+  assistantMessage: string;
+  blocked: boolean;
+  suggestedFactUpdates?: RehearsalSuggestedFactUpdate[];
+};
