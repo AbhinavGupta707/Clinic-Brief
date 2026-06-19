@@ -30,6 +30,16 @@ const syntheticPdfFallbackText = [
   "This text is synthetic and exists only to verify selectable-PDF/manual fallback intake."
 ].join("\n");
 
+const syntheticChronicTextNote = [
+  "Synthetic chronic appointment-preparation note for smoke testing.",
+  "The user reports confirmed history of recurring fatigue and joint pain discussed at previous appointments.",
+  "The user says a possible inflammatory condition is being investigated and is not confirmed by ClinicBrief.",
+  "Baseline symptoms include fatigue, morning stiffness, and flares after busy weeks.",
+  "Current medication and treatment history includes over-the-counter pain relief and physiotherapy exercises to review with the clinician.",
+  "Functional impact includes sleep disruption, reduced walking distance, and difficulty keeping up with work.",
+  "The main appointment goal is to explain what changed since the last appointment and ask what information the clinician needs next."
+].join("\n");
+
 const smokeChecks = {
   memory: runMemorySmoke,
   ai: runAiSmoke,
@@ -231,7 +241,17 @@ async function runFullProductSmoke(options) {
       assert(extraction.source === "fireworks", "Fireworks credentials were present, but extraction did not use the Fireworks provider.");
     }
 
-    const [confirmFact, editFact, rejectFact] = extraction.facts;
+    const confirmFact = extraction.facts.find((fact) => fact.category === "MEDICATION") ?? extraction.facts[0];
+    const editFact =
+      extraction.facts.find((fact) => fact.id !== confirmFact.id && ["SYMPTOM", "QUESTION", "HISTORY_ITEM"].includes(fact.category)) ??
+      extraction.facts.find((fact) => fact.id !== confirmFact.id) ??
+      extraction.facts[1];
+    const rejectFact =
+      extraction.facts.find((fact) => fact.id !== confirmFact.id && fact.id !== editFact.id) ??
+      extraction.facts.find((fact) => fact.id !== confirmFact.id) ??
+      extraction.facts[2];
+
+    assert(confirmFact && editFact && rejectFact, "Extraction did not produce enough distinct facts for confirm/edit/reject review.");
     await patchJson(baseUrl, `/api/cases/${caseId}/facts/${confirmFact.id}`, {
       userStatus: "CONFIRMED"
     });
@@ -245,6 +265,13 @@ async function runFullProductSmoke(options) {
 
     const timeline = await postJson(baseUrl, `/api/cases/${caseId}/timeline/rebuild`, {});
     assert(timeline.timeline.length >= 2, "Timeline rebuild did not include confirmed and edited facts.");
+
+    const generatedPatterns = await postJson(baseUrl, `/api/cases/${caseId}/patterns`, {});
+    assert(generatedPatterns.patternCards.length >= 1, "Pattern-card generation did not produce a reviewable card from reviewed facts.");
+    const reviewedPattern = await patchJson(baseUrl, `/api/cases/${caseId}/patterns/${generatedPatterns.patternCards[0].id}`, {
+      userStatus: "CONFIRMED"
+    });
+    assert(reviewedPattern.patternCard.userStatus === "CONFIRMED", "Pattern-card confirmation did not persist.");
 
     const brief = await postJson(baseUrl, `/api/cases/${caseId}/briefs`, {
       briefType: "PREOP",
@@ -309,10 +336,17 @@ async function runFullProductSmoke(options) {
     assert(!("messageText" in analytics.props), "Analytics sanitizer retained message text.");
     assert(!("caseId" in analytics.props), "Analytics sanitizer retained a case id prop.");
 
+    await expectHttpOk(baseUrl, `/cases/${caseId}`);
+    const briefHtml = await getText(baseUrl, `/cases/${caseId}/brief?type=PREOP`);
+    assert(briefHtml.includes("Read story"), "Brief page did not render the browser read-back control.");
+    assert(briefHtml.includes("No audio is uploaded or stored by ClinicBrief"), "Read-back privacy copy was missing from the brief page.");
+
     const realCasePages = ["review", "timeline", "brief", "rehearsal", "export", "settings"];
     for (const page of realCasePages) {
       await expectHttpOk(baseUrl, `/cases/${caseId}/${page}`);
     }
+
+    const chronic = await runChronicCaseSmoke(baseUrl, options.label);
 
     const deleted = await deleteJson(baseUrl, `/api/cases/${caseId}`);
     assert(deleted.deleted === true, "Delete endpoint did not mark the synthetic smoke case deleted.");
@@ -331,11 +365,73 @@ async function runFullProductSmoke(options) {
       factCount: extraction.facts.length,
       questionCount: extraction.questions.length,
       timelineCount: timeline.timeline.length,
+      patternCount: generatedPatterns.patternCards.length,
+      chronicFactCount: chronic.factCount,
+      chronicSectionCount: chronic.chronicSectionCount,
       deletedFiles: deleted.storageCleanup.filesRemoved,
       databaseBackend: health.data.database.backend,
       storageBackend: health.data.storage.backend
     };
   });
+}
+
+async function runChronicCaseSmoke(baseUrl, label) {
+  const caseResponse = await postJson(baseUrl, "/api/cases", {
+    title: `Synthetic ${label} chronic smoke case`,
+    mode: "CHRONIC",
+    consent: true
+  });
+  const caseId = caseResponse.caseId;
+  assert(caseId, "Chronic case creation did not return a case id.");
+
+  const document = await postJson(baseUrl, `/api/cases/${caseId}/documents`, {
+    type: "TEXT_NOTE",
+    fileName: "synthetic-chronic-smoke-note.txt",
+    text: syntheticChronicTextNote
+  });
+  assert(document.document.type === "TEXT_NOTE", "Chronic text note intake did not create a text document.");
+
+  const extraction = await postJson(baseUrl, `/api/cases/${caseId}/extract`, {});
+  assert(extraction.facts.length >= 4, "Chronic extraction did not produce enough appointment-preparation facts.");
+  assert(extraction.questions.length >= 1, "Chronic extraction did not produce missing questions.");
+
+  for (const fact of extraction.facts.slice(0, 5)) {
+    await patchJson(baseUrl, `/api/cases/${caseId}/facts/${fact.id}`, {
+      userStatus: "CONFIRMED"
+    });
+  }
+
+  const timeline = await postJson(baseUrl, `/api/cases/${caseId}/timeline/rebuild`, {});
+  assert(timeline.timeline.length >= 2, "Chronic timeline rebuild did not include reviewed facts.");
+
+  const patterns = await postJson(baseUrl, `/api/cases/${caseId}/patterns`, {});
+  if (patterns.patternCards.length > 0) {
+    await patchJson(baseUrl, `/api/cases/${caseId}/patterns/${patterns.patternCards[0].id}`, {
+      userStatus: "CONFIRMED"
+    });
+  }
+
+  const brief = await postJson(baseUrl, `/api/cases/${caseId}/briefs`, {
+    briefType: "GP",
+    appointmentGoal: "Prepare a synthetic chronic review discussion."
+  });
+  assertSafetyDisclaimer(brief.brief.briefJson.safetyDisclaimer);
+  assert(brief.brief.briefJson.chronicSections, "Chronic brief did not include chronic sections.");
+
+  const chronicSectionCount = Object.values(brief.brief.briefJson.chronicSections).reduce((sum, items) => sum + items.length, 0);
+  assert(chronicSectionCount >= 2, "Chronic brief sections did not include enough reviewed context.");
+
+  await expectHttpOk(baseUrl, `/cases/${caseId}`);
+  await expectHttpOk(baseUrl, `/cases/${caseId}/brief?type=GP`);
+  await expectHttpOk(baseUrl, `/cases/${caseId}/export?type=GP`);
+
+  const deleted = await deleteJson(baseUrl, `/api/cases/${caseId}`);
+  assert(deleted.deleted === true, "Chronic delete endpoint did not mark the synthetic case deleted.");
+
+  return {
+    factCount: extraction.facts.length,
+    chronicSectionCount
+  };
 }
 
 async function withNextServer(envOverrides, callback) {
@@ -434,6 +530,17 @@ async function postMultipartDocument(baseUrl, caseId) {
 
 async function getJson(baseUrl, path) {
   return requestJson(baseUrl, path, { method: "GET" });
+}
+
+async function getText(baseUrl, path) {
+  const response = await fetch(`${baseUrl}${path}`);
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`GET ${path} failed with status ${response.status}.`);
+  }
+
+  return text;
 }
 
 async function postJson(baseUrl, path, body) {
@@ -611,6 +718,9 @@ function printSmokeSummary(result) {
         factCount: result.factCount,
         questionCount: result.questionCount,
         timelineCount: result.timelineCount,
+        patternCount: result.patternCount,
+        chronicFactCount: result.chronicFactCount,
+        chronicSectionCount: result.chronicSectionCount,
         deletedFiles: result.deletedFiles
       },
       null,

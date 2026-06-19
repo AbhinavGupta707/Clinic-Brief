@@ -1,66 +1,84 @@
 # ClinicBrief Demo Script
 
-Target length: 2 minutes 30 seconds or less. Record from the deployed public URL once available.
+Target length: 2-3 minutes. Record from `https://clinic-brief-web.vercel.app/` once the latest `main` deploy is live.
 
-## 0:00-0:20 - Problem and safety boundary
+## 0:00-0:20 - Problem And Safety Boundary
 
-Open `https://YOUR-VERCEL-URL/`.
+Open `https://clinic-brief-web.vercel.app/`.
 
-Say: "ClinicBrief helps patients and carers tell the same health story across appointments. It organizes information the user provides. It does not diagnose, recommend treatment, change medication, or replace medical advice."
+Say: "ClinicBrief helps patients and carers turn messy notes, documents, and appointment context into a reviewed brief they can bring to a clinician. It organizes information the user provides. It does not diagnose, recommend treatment, change medication, or replace medical advice."
 
 Show the required safety copy above the fold.
 
-## 0:20-0:45 - Synthetic case first
+## 0:20-0:45 - Synthetic Demo Path
 
 Click "Try sample pre-op case" and open `/demo/preop`.
 
-Say: "For the hackathon demo, judges start with synthetic data. No real patient information is needed."
+Say: "Judges can start with synthetic data, so no real patient information is needed."
 
-Point out the synthetic documents, deterministic facts, source provenance, and missing-context questions.
+Show synthetic documents, extracted facts, source provenance, missing-context questions, and the demo navigation.
 
-## 0:45-1:15 - Review to brief
+## 0:45-1:15 - Real Live Case Path
 
-Open `/cases/sample-preop/review`, then `/cases/sample-preop/timeline`, then `/cases/sample-preop/brief`.
+Open `/cases/new`, choose "Chronic / ongoing history", accept consent, and create a case.
 
-Show confidence/source provenance on review, the chronological timeline, then the brief modes:
+On the dashboard, say: "The real path starts from a blank case and tells the user the next best action."
 
-- GP brief
-- consultant brief
-- pre-op nurse brief
-- family/carer handoff
-- 90-second story
+Open intake. Show guided source capture:
 
-Say: "The same reviewed facts become the right version for the appointment, without diagnosis or treatment advice."
+- appointment goal;
+- story starter with optional browser speech-to-text;
+- timeline anchors;
+- medicines/allergies;
+- pasted/uploaded documents;
+- review before extraction.
 
-## 1:15-1:45 - Handoff and rehearsal
+Say: "Speech capture is browser-only. ClinicBrief stores only reviewed transcript text, not audio."
 
-On `/cases/sample-preop/brief`, show the handoff card and 90-second story.
+## 1:15-1:50 - Review, Timeline, Pattern Cards
 
-Open `/cases/sample-preop/rehearsal`.
+Run extraction on synthetic/reviewed text. Open review and confirm/edit/reject a few facts.
 
-Answer one appointment-prep question. Then type a prohibited medical-advice prompt such as "Should I stop this medication?" and show the safe redirect.
+Open timeline and generate pattern cards.
 
-Say: "Rehearsal asks one preparation question at a time and refuses medical advice. AI Agent Tracking should stay off unless prompts and responses are masked."
+Say: "Pattern cards are hypotheses to discuss, not conclusions. They cite source facts and must be confirmed, edited, or rejected before they are used."
 
-## 1:45-2:10 - Export and delete
+Show one confirmed card and one rejected/left-unreviewed card if available.
 
-Open `/cases/sample-preop/export`.
+## 1:50-2:25 - Brief, Read-Back, Export
 
-Show "Print or save as PDF", "Download Markdown", and "Copy Markdown." Point out that the disclaimer remains in the output.
+Open brief.
 
-Open `/cases/sample-preop/settings`.
+Show:
 
-Show the delete-all-data confirmation and deletion receipt.
+- chronic appointment context;
+- what changed since last appointment;
+- questions for clinician;
+- uncertainties;
+- reviewed pattern-card note;
+- required safety disclaimer.
 
-## 2:10-2:30 - Novus proof and submission close
+Click "Read story" if the browser supports it.
+
+Say: "Read-back uses browser text-to-speech. No audio is uploaded or stored."
+
+Open export. Show server PDF download, browser print/save-as-PDF, Markdown download, and copy fallback.
+
+## 2:25-2:45 - Rehearsal, Privacy, Novus Proof
+
+Open rehearsal and ask one appointment-preparation question. Then type: "Should I stop this medication?" and show the safe redirect.
 
 Open `/novus-proof`.
 
-Say: "Novus events are limited to mode, counts, confidence bands, and brief type. The sanitizer drops raw health text, medication names, symptom names, file names, source quotes, prompts, responses, transcripts, messages, and identifiers. Session Replay should use maximum privacy with all inputs masked."
+Say: "Analytics are limited to mode, brief type, confidence bands, and counts. The sanitizer drops raw health text, medication names, symptom names, file names, prompts, responses, transcripts, messages, and identifiers. Session Replay should use maximum privacy with all inputs masked."
 
-Close: "ClinicBrief is a working public-web prototype for patient-controlled appointment preparation."
+## 2:45-3:00 - Delete And Close
 
-## Submission placeholders
+Open settings and show the delete confirmation.
 
-- Public URL: `https://YOUR-VERCEL-URL`
-- Novus screenshot: capture after installing the real dashboard snippet and running this flow.
+Close: "ClinicBrief is a working public-web prototype for patient-controlled appointment preparation: create, organize, review, rehearse, export, and delete."
+
+## Submission Placeholders
+
+- Public URL: `https://clinic-brief-web.vercel.app/`
+- Novus screenshot: capture after installing the real dashboard snippet and running this flow with maximum privacy masking.
