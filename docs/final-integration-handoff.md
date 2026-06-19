@@ -1,5 +1,29 @@
 # ClinicBrief Final Integration Handoff
 
+## Full Agentic Smoke Update
+
+Branch/worktree `agent/full-agentic-smoke` in `.worktrees/full-agentic-smoke` adds repeatable smoke scripts for memory, AI, DB, storage, and full-product mode.
+
+Smoke commands now available from the repo root:
+
+```bash
+pnpm smoke:memory
+pnpm smoke:ai
+pnpm smoke:db
+pnpm smoke:storage
+pnpm smoke:full
+```
+
+Verified locally on June 19, 2026:
+
+- `pnpm smoke:memory` passed with memory DB/storage, synthetic text intake, PDF manual fallback, extraction fallback, review confirm/edit/reject, timeline rebuild, brief, safe and unsafe rehearsal, export, analytics sanitizer, and delete cleanup.
+- `pnpm smoke:full` passed in fallback mode with memory DB/storage and deterministic extraction.
+- `pnpm smoke:ai` was blocked because `FIREWORKS_API_KEY` and `FIREWORKS_MODEL` were unset.
+- `pnpm smoke:db` was blocked because `DATABASE_URL` was unset.
+- `pnpm smoke:storage` was blocked because `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET` were unset.
+
+The smoke scripts use synthetic data only and do not print secret values.
+
 ## Current Status
 
 Prompt 8-9 submission and production readiness is complete on branch `agent/submission-production-readiness` in worktree `.worktrees/submission-production-readiness`.

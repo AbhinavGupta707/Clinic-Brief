@@ -128,7 +128,15 @@ pnpm smoke:storage
 pnpm smoke:full
 ```
 
-These names are stable. Foundation installs placeholders; downstream workstreams should make them executable for their owned backend/provider paths.
+These names are stable and executable as of branch `agent/full-agentic-smoke`.
+
+- `smoke:memory` starts a temporary local Next.js server and runs the full synthetic product flow with memory DB and private memory storage.
+- `smoke:ai` requires `FIREWORKS_API_KEY` and `FIREWORKS_MODEL`, then runs the product flow and fails if extraction does not use Fireworks.
+- `smoke:db` requires `DATABASE_URL`, then runs the Prisma/Postgres create/read/update/delete smoke.
+- `smoke:storage` requires Supabase private storage env, then verifies upload and delete through the storage-backed document flow.
+- `smoke:full` starts a temporary local Next.js server and uses the selected runtime backends, defaulting to memory DB/storage and deterministic AI fallback when external env is absent.
+
+All smoke scripts use synthetic data only, print env variable names rather than values, and redact known secret values from child process output.
 
 Novus, later:
 
@@ -247,6 +255,7 @@ Local fallback mode:
 - `pnpm test`
 - `pnpm build`
 - memory smoke passes with no external credentials.
+- full smoke passes in fallback mode with no external credentials.
 - synthetic demo still works.
 - real-case fallback still works.
 
@@ -261,12 +270,14 @@ Agentic mode:
 
 Persistence mode:
 
+- `pnpm smoke:db` fails clearly with missing env names when `DATABASE_URL` is absent.
 - cases survive server restart/repository reinitialization.
 - facts/review/timeline/brief/rehearsal persist.
 - delete removes or marks records consistently.
 
 Storage mode:
 
+- `pnpm smoke:storage` fails clearly with missing env names when Supabase storage env is absent.
 - uploaded files are stored in private Supabase bucket.
 - source hashes are saved.
 - delete removes case files.
