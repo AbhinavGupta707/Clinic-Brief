@@ -8,6 +8,7 @@ const nextConfig = {
   outputFileTracingRoot: workspaceRoot,
   transpilePackages: [
     "@clinicbrief/ai",
+    "@clinicbrief/db",
     "@clinicbrief/documents",
     "@clinicbrief/events",
     "@clinicbrief/exports",

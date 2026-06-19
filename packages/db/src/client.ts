@@ -1,12 +1,10 @@
+import { PrismaClient } from "@prisma/client";
+
 export type ClinicDataBackend = "memory" | "prisma";
 
 export type PrismaClientLike = {
   $connect(): Promise<void>;
   $disconnect(): Promise<void>;
-};
-
-type PrismaClientModule = {
-  PrismaClient: new () => PrismaClientLike;
 };
 
 export function resolveClinicDataBackend(env: NodeJS.ProcessEnv = process.env): ClinicDataBackend {
@@ -20,7 +18,5 @@ export function resolveClinicDataBackend(env: NodeJS.ProcessEnv = process.env): 
 }
 
 export async function createClinicPrismaClient(): Promise<PrismaClientLike> {
-  const runtimeImport = new Function("specifier", "return import(specifier)") as (specifier: string) => Promise<unknown>;
-  const prismaModule = (await runtimeImport("@prisma/client")) as PrismaClientModule;
-  return new prismaModule.PrismaClient();
+  return new PrismaClient();
 }
