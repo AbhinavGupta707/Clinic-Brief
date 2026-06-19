@@ -107,7 +107,7 @@ node -e 'const url=process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/,"");const
 
 The readiness endpoints classify app URL, AI, database, storage, and Novus as configured, fallback, misconfigured, or unconfigured. Missing Fireworks credentials are a safe fallback; selecting Prisma without `DATABASE_URL` or Supabase storage without required private storage env is misconfigured.
 
-Foundation smoke script placeholders are installed:
+Executable smoke scripts are available:
 
 ```bash
 pnpm smoke:memory
@@ -117,10 +117,10 @@ pnpm smoke:storage
 pnpm smoke:full
 ```
 
-Later workstreams should replace placeholder internals with executable checks while preserving these script names.
+`smoke:memory` and fallback `smoke:full` run without external credentials. `smoke:ai`, `smoke:db`, and `smoke:storage` require their provider env and fail clearly with missing variable names when not configured.
 
 ## PDF And OCR
 
-The current export path keeps browser print/save-as-PDF plus Markdown download/copy. This is the safest submission path in the absence of a fully smoke-tested server PDF renderer.
+The current export path can return a server-generated PDF when feasible and keeps browser print/save-as-PDF plus Markdown download/copy as resilient fallbacks.
 
 PDF intake extracts selectable text and falls back honestly to manual paste for malformed or scanned PDFs. OCR remains optional and should not be added until deployment and Novus proof are complete.

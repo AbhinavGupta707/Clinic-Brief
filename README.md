@@ -84,7 +84,7 @@ Local development defaults to `CLINICBRIEF_DATA_BACKEND=memory`, which keeps the
 
 `GET /api/health` and `GET /api/system-readiness` return configured/fallback/misconfigured state for app URL, AI, database, storage, and Novus without exposing secret values. Missing Fireworks, Supabase, or Novus credentials are reported as fallback/unconfigured unless their backend has explicitly been selected.
 
-Smoke script contracts are available for later workstreams:
+Smoke script contracts are available:
 
 ```bash
 pnpm smoke:memory
@@ -94,11 +94,11 @@ pnpm smoke:storage
 pnpm smoke:full
 ```
 
-These are placeholders until the final integration branch wires executable provider-backed smoke flows.
+These are executable checks. `smoke:memory` and fallback `smoke:full` run without external credentials. `smoke:ai`, `smoke:db`, and `smoke:storage` fail clearly with the missing env variable names when their provider credentials are absent.
 
 ## Storage Backend
 
-Local development defaults to `CLINICBRIEF_STORAGE_BACKEND=memory`, which stores private upload bytes in process memory and supports delete-by-case cleanup. Set `CLINICBRIEF_STORAGE_BACKEND=supabase` with `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET` when the Supabase private storage adapter lands. Do not expose the service-role key client-side.
+Local development defaults to `CLINICBRIEF_STORAGE_BACKEND=memory`, which stores private upload bytes in process memory and supports delete-by-case cleanup. Set `CLINICBRIEF_STORAGE_BACKEND=supabase` with `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET` to use the Supabase private storage adapter. Do not expose the service-role key client-side.
 
 ## Novus Eligibility
 
