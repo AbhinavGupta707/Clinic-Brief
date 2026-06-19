@@ -37,6 +37,21 @@ describe("brief generation service", () => {
     expect(JSON.stringify(brief)).not.toContain("Rejected penicillin allergy");
     expect(brief.safetyDisclaimer).toBe(REQUIRED_DISCLAIMER);
   });
+
+  it("builds a chronic brief from reviewed facts with investigated items kept separate", async () => {
+    const brief = await buildAppointmentBrief({
+      record: makeChronicRecord(),
+      briefType: "CONSULTANT",
+      appointmentGoal: "Clarify what changed and what questions to ask."
+    });
+
+    expect(brief.chronicSections?.reportedConfirmedHistory).toContain("Clinician-confirmed asthma history");
+    expect(brief.chronicSections?.conditionsBeingInvestigated).toContain("Possible migraine is being investigated");
+    expect(brief.allergiesAndImportantNotes.join(" ")).toContain("Reported confirmed history");
+    expect(brief.allergiesAndImportantNotes.join(" ")).toContain("Being investigated or not yet confirmed");
+    expect(JSON.stringify(brief)).not.toContain("Rejected diagnosis claim");
+    expect(JSON.stringify(brief)).not.toMatch(/start taking|stop taking|urgent|risk score/i);
+  });
 });
 
 function makeRecord(): ClinicCaseSnapshot {
@@ -83,6 +98,86 @@ function makeRecord(): ClinicCaseSnapshot {
         question: "What changed since the last appointment?",
         whyItMattersForAppointment: "Keeps the story focused.",
         answerType: "short_text"
+      }
+    ],
+    timeline: [],
+    medications: [],
+    symptoms: [],
+    appointments: [],
+    briefs: [],
+    rehearsals: [],
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+function makeChronicRecord(): ClinicCaseSnapshot {
+  const now = "2026-06-19T00:00:00.000Z";
+  const facts: ExtractedFact[] = [
+    {
+      id: "fact-history",
+      caseId: "case-chronic-brief",
+      sourceDocId: "doc-1",
+      category: "HISTORY_ITEM",
+      displayText: "User-reported confirmed history: Clinician-confirmed asthma history",
+      value: { text: "Clinician-confirmed asthma history", chronicFieldId: "reported_confirmed_history" },
+      confidence: 0.9,
+      userStatus: "CONFIRMED",
+      createdAt: now
+    },
+    {
+      id: "fact-investigated",
+      caseId: "case-chronic-brief",
+      sourceDocId: "doc-1",
+      category: "HISTORY_ITEM",
+      displayText: "User-reported condition or symptom being investigated, not confirmed by ClinicBrief: Possible migraine is being investigated",
+      value: { text: "Possible migraine is being investigated", chronicFieldId: "conditions_being_investigated" },
+      confidence: 0.86,
+      userStatus: "CONFIRMED",
+      createdAt: now
+    },
+    {
+      id: "fact-impact",
+      caseId: "case-chronic-brief",
+      sourceDocId: "doc-1",
+      category: "SYMPTOM",
+      displayText: "User-reported functional impact: Fewer full work days during flares",
+      value: { text: "Fewer full work days during flares", chronicFieldId: "functional_impact" },
+      confidence: 0.84,
+      userStatus: "EDITED",
+      createdAt: now
+    },
+    {
+      id: "fact-rejected",
+      caseId: "case-chronic-brief",
+      sourceDocId: "doc-1",
+      category: "HISTORY_ITEM",
+      displayText: "Rejected diagnosis claim",
+      value: { text: "Rejected diagnosis claim", chronicFieldId: "reported_confirmed_history" },
+      confidence: 0.95,
+      userStatus: "REJECTED",
+      createdAt: now
+    }
+  ];
+
+  return {
+    id: "case-chronic-brief",
+    title: "Chronic brief test case",
+    mode: "CHRONIC",
+    status: "REVIEWED",
+    consentAccepted: true,
+    consentedAt: now,
+    documents: [],
+    sourcePreviews: [],
+    facts,
+    questions: [
+      {
+        id: "q-chronic-goal",
+        priority: "high",
+        question: "What do you want to ask the clinician?",
+        whyItMattersForAppointment: "Keeps the visit focused.",
+        answerType: "short_text",
+        chronicFieldId: "questions_for_clinician"
       }
     ],
     timeline: [],

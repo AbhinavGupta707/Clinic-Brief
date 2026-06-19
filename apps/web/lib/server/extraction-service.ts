@@ -48,7 +48,7 @@ export async function buildCaseExtraction(record: ClinicCaseSnapshot): Promise<B
       const extracted = await runClinicJson({
         task: "case-extraction",
         system: EXTRACTION_SYSTEM_PROMPT,
-        user: buildExtractionUserPrompt(sourceDocuments),
+        user: buildExtractionUserPrompt(record.mode, sourceDocuments),
         schema: ExtractionResultSchema
       });
       const normalized = normalizeAiExtraction(record.id, sourceDocuments, extracted);
@@ -77,16 +77,19 @@ export function createSourceTextFallbackExtraction(caseId: string, mode: CaseMod
   const facts = sourceDocuments
     .flatMap((document) =>
       extractFactSegments(document.text).map((segment, index): ExtractedFact => {
+        const chronicFieldId = mode === "CHRONIC" ? classifyChronicField(segment) : undefined;
         const category = classifyFact(segment);
+        const displayText = mode === "CHRONIC" ? formatChronicFallbackDisplayText(segment, chronicFieldId) : `Source mentions: ${segment}`;
 
         return {
           id: `fallback-${caseId}-${document.id}-${index}`,
           caseId,
           sourceDocId: document.id,
           category,
-          displayText: `Source mentions: ${segment}`,
+          displayText,
           value: {
             text: segment,
+            ...(chronicFieldId ? { chronicFieldId } : {}),
             sourceFileName: document.fileName,
             extractionSource: "fixture"
           },
@@ -150,16 +153,35 @@ function normalizeAiExtraction(caseId: string, sourceDocuments: SourceDocument[]
   };
 }
 
-function buildExtractionUserPrompt(documents: SourceDocument[]): string {
+function buildExtractionUserPrompt(mode: CaseMode, documents: SourceDocument[]): string {
   return JSON.stringify({
     task: "Extract appointment-preparation facts only. Do not diagnose, recommend treatment, advise medication changes, assess urgency, or infer facts not present in the sources.",
+    caseMode: mode,
+    modeInstructions:
+      mode === "CHRONIC"
+        ? {
+            chronicScope:
+              "This is a chronic or complex longitudinal history case. Extract user-reported appointment-prep facts about timeline, symptoms, flares, medication or treatment history, functional impact, appointment goals, uncertainties, and clinician questions.",
+            confirmedHistory:
+              "If the source says the user has a confirmed diagnosis or history, use category HISTORY_ITEM and value.chronicFieldId='reported_confirmed_history'. Phrase displayText as user-reported history, not as your diagnosis.",
+            investigatedConditions:
+              "If the source says possible, suspected, being investigated, rule-out, or waiting for assessment, use category HISTORY_ITEM and value.chronicFieldId='conditions_being_investigated'. Keep it separate from confirmed history.",
+            symptomHistory:
+              "Use value.chronicFieldId='baseline_symptoms' for baseline symptoms and 'flares_or_episodes' for episodes, flares, relapses, or symptom spikes.",
+            safeBoundary:
+              "Do not convert symptoms into diagnoses, rank urgency, recommend tests, recommend treatments, or advise medication changes."
+          }
+        : undefined,
     outputContract:
       "Return JSON with exactly { facts: [...], questions: [...] }. Do not include this contract, allowed values, or documents in the response.",
     factContract: {
       sourceDocId: "Must exactly match one provided document id.",
       category: "One of MEDICATION, ALLERGY, SYMPTOM, APPOINTMENT, TEST_RESULT, PROCEDURE, HISTORY_ITEM, QUESTION, CONTACT.",
       displayText: "Short appointment-preparation fact stated by the source.",
-      value: "Object such as { text: string }. Never a string.",
+      value:
+        mode === "CHRONIC"
+          ? "Object such as { text: string, chronicFieldId?: 'reported_confirmed_history' | 'conditions_being_investigated' | 'baseline_symptoms' | 'flares_or_episodes' | 'current_medications_and_treatments_tried' | 'functional_impact' | 'possible_triggers_to_discuss' | 'changed_since_last_appointment' | 'questions_for_clinician' }. Never a string."
+          : "Object such as { text: string }. Never a string.",
       confidence: "Number from 0 to 1. Never high/medium/low text.",
       sourceQuote: "Short exact quote copied from the matching source document."
     },
@@ -168,7 +190,11 @@ function buildExtractionUserPrompt(documents: SourceDocument[]): string {
       priority: "One of low, medium, high.",
       question: "One appointment-preparation question.",
       whyItMattersForAppointment: "Why this helps the user prepare for the appointment.",
-      answerType: "One of short_text, date, yes_no, medication, allergy."
+      answerType: "One of short_text, date, yes_no, medication, allergy.",
+      chronicFieldId:
+        mode === "CHRONIC"
+          ? "Optional. One chronic intake field id when the question asks about that chronic field."
+          : undefined
     },
     example: {
       facts: [
@@ -295,6 +321,10 @@ function classifyFact(segment: string): ExtractedFact["category"] {
 }
 
 function createFallbackQuestions(caseId: string, mode: CaseMode, facts: ExtractedFact[]): MissingQuestion[] {
+  if (mode === "CHRONIC") {
+    return createChronicFallbackQuestions(caseId, facts);
+  }
+
   const categories = new Set(facts.map((fact) => fact.category));
   const questions: MissingQuestion[] = [
     {
@@ -334,6 +364,163 @@ function createFallbackQuestions(caseId: string, mode: CaseMode, facts: Extracte
   }
 
   return questions;
+}
+
+function createChronicFallbackQuestions(caseId: string, facts: ExtractedFact[]): MissingQuestion[] {
+  const categories = new Set(facts.map((fact) => fact.category));
+  const chronicFields = new Set(facts.map((fact) => fact.value.chronicFieldId).filter((field): field is string => typeof field === "string"));
+  const questions: MissingQuestion[] = [
+    {
+      id: `fallback-question-${caseId}-chronic-goal`,
+      priority: "high",
+      question: "What do you most want this clinician to understand or help you clarify at this chronic review?",
+      whyItMattersForAppointment: "A clear goal helps keep a complex health story focused for the appointment.",
+      answerType: "short_text",
+      chronicFieldId: "questions_for_clinician"
+    },
+    {
+      id: `fallback-question-${caseId}-confirmed-history`,
+      priority: chronicFields.has("reported_confirmed_history") ? "medium" : "high",
+      question: "Which history items or condition names have already been confirmed by a clinician, if any?",
+      whyItMattersForAppointment: "Confirmed history should be separated from symptoms or conditions still being investigated.",
+      answerType: "short_text",
+      chronicFieldId: "reported_confirmed_history"
+    },
+    {
+      id: `fallback-question-${caseId}-investigated-conditions`,
+      priority: chronicFields.has("conditions_being_investigated") ? "medium" : "high",
+      question: "Are there possible conditions, explanations, or symptoms currently being investigated that should be labelled as not confirmed?",
+      whyItMattersForAppointment: "This keeps the brief clear without presenting investigated possibilities as diagnoses.",
+      answerType: "short_text",
+      chronicFieldId: "conditions_being_investigated"
+    },
+    {
+      id: `fallback-question-${caseId}-baseline-flares`,
+      priority: categories.has("SYMPTOM") ? "high" : "medium",
+      question: "What is your usual baseline, and what do flares or worse episodes look like?",
+      whyItMattersForAppointment: "Baseline and flare details help describe a longitudinal pattern without guessing the cause.",
+      answerType: "short_text",
+      chronicFieldId: "flares_or_episodes"
+    },
+    {
+      id: `fallback-question-${caseId}-functional-impact`,
+      priority: chronicFields.has("functional_impact") ? "medium" : "high",
+      question: "How does this affect daily activities, work, study, caring responsibilities, sleep, or mobility?",
+      whyItMattersForAppointment: "Functional impact helps the clinician understand what has changed in day-to-day life.",
+      answerType: "short_text",
+      chronicFieldId: "functional_impact"
+    },
+    {
+      id: `fallback-question-${caseId}-treatments-tried`,
+      priority: categories.has("MEDICATION") ? "medium" : "high",
+      question: "What medicines, self-management steps, referrals, or treatments have been tried, and what do you want to confirm about them?",
+      whyItMattersForAppointment: "Treatment history is useful to organize, while ClinicBrief will not recommend changes.",
+      answerType: "medication",
+      chronicFieldId: "current_medications_and_treatments_tried"
+    },
+    {
+      id: `fallback-question-${caseId}-changed-since-last`,
+      priority: "high",
+      question: "What has changed since the last appointment, test, referral, or notable update?",
+      whyItMattersForAppointment: "Recent changes help the appointment focus on what is new or unresolved.",
+      answerType: "short_text",
+      chronicFieldId: "changed_since_last_appointment"
+    }
+  ];
+
+  if (!categories.has("ALLERGY")) {
+    questions.push({
+      id: `fallback-question-${caseId}-allergies`,
+      priority: "medium",
+      question: "Are there allergies, reactions, or important safety notes you want listed as user-reported facts?",
+      whyItMattersForAppointment: "These are common appointment details to verify from the user's own information.",
+      answerType: "allergy"
+    });
+  }
+
+  return questions;
+}
+
+function classifyChronicField(segment: string): NonNullable<MissingQuestion["chronicFieldId"]> | undefined {
+  const lower = segment.toLowerCase();
+
+  if (/\b(possible|suspected|investigat(?:e|ed|ing|ion)|rule out|ruling out|query|awaiting assessment|unconfirmed)\b/.test(lower)) {
+    return "conditions_being_investigated";
+  }
+
+  if (/\b(diagnosed|diagnosis|confirmed|history of|known|longstanding)\b/.test(lower)) {
+    return "reported_confirmed_history";
+  }
+
+  if (/\b(flares?|episodes?|relapses?|crash|worse episode|spike)\b/.test(lower)) {
+    return "flares_or_episodes";
+  }
+
+  if (/\b(baseline|usually|typical|most days|daily symptom)\b/.test(lower)) {
+    return "baseline_symptoms";
+  }
+
+  if (/\b(medication|medicine|tablet|capsule|inhaler|supplement|dose|mg|treatment|therapy|physio|tried)\b/.test(lower)) {
+    return "current_medications_and_treatments_tried";
+  }
+
+  if (/\b(work|study|school|sleep|mobility|walking|stairs|care|caring|daily activities|function|fatigue after)\b/.test(lower)) {
+    return "functional_impact";
+  }
+
+  if (/\b(trigger|after|worse with|worse after|linked to|pattern)\b/.test(lower)) {
+    return "possible_triggers_to_discuss";
+  }
+
+  if (/\b(since last|changed since|recently|new since|worse since|better since)\b/.test(lower)) {
+    return "changed_since_last_appointment";
+  }
+
+  if (segment.includes("?") || /\b(question|ask|clarify|understand)\b/.test(lower)) {
+    return "questions_for_clinician";
+  }
+
+  return undefined;
+}
+
+function formatChronicFallbackDisplayText(segment: string, chronicFieldId: MissingQuestion["chronicFieldId"]): string {
+  if (chronicFieldId === "reported_confirmed_history") {
+    return `User-reported confirmed history: ${segment}`;
+  }
+
+  if (chronicFieldId === "conditions_being_investigated") {
+    return `User-reported condition or symptom being investigated, not confirmed by ClinicBrief: ${segment}`;
+  }
+
+  if (chronicFieldId === "flares_or_episodes") {
+    return `User-reported flare or episode: ${segment}`;
+  }
+
+  if (chronicFieldId === "baseline_symptoms") {
+    return `User-reported baseline symptom pattern: ${segment}`;
+  }
+
+  if (chronicFieldId === "current_medications_and_treatments_tried") {
+    return `User-reported medication or treatment history: ${segment}`;
+  }
+
+  if (chronicFieldId === "functional_impact") {
+    return `User-reported functional impact: ${segment}`;
+  }
+
+  if (chronicFieldId === "possible_triggers_to_discuss") {
+    return `User-reported possible trigger or pattern to discuss: ${segment}`;
+  }
+
+  if (chronicFieldId === "changed_since_last_appointment") {
+    return `User-reported change since last appointment: ${segment}`;
+  }
+
+  if (chronicFieldId === "questions_for_clinician") {
+    return `User question for clinician: ${segment}`;
+  }
+
+  return `Source mentions: ${segment}`;
 }
 
 function dedupeQuestions(questions: MissingQuestion[]): MissingQuestion[] {
