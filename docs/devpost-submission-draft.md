@@ -10,7 +10,7 @@ Tell your health story once. Bring the right version to every appointment.
 
 ## Public URL
 
-TODO: `https://YOUR-VERCEL-URL`
+`https://clinic-brief-web.vercel.app/`
 
 ## Novus screenshot
 
@@ -18,7 +18,7 @@ TODO: Upload a screenshot from the Novus/Pendo dashboard after the deployed Clin
 
 ## What it does
 
-ClinicBrief helps a patient or carer turn scattered appointment context into a clear, reviewable brief they control. The demo uses a synthetic pre-op case with document summaries, extracted facts, missing-context questions, brief modes, a family/carer handoff card, a 90-second story, appointment rehearsal, export fallback, delete controls, and Novus-safe analytics proof.
+ClinicBrief helps a patient or carer turn scattered appointment context into a clear, reviewable brief they control. It supports a synthetic pre-op demo and a real live case path with guided intake, chronic/ongoing-history mode, document or pasted-text sources, browser speech-to-text, extracted facts, missing-context questions, timeline rebuilding, review-first pattern cards, chronic-aware brief modes, browser read-back, appointment rehearsal, PDF/print/Markdown export, delete controls, and Novus-safe analytics proof.
 
 ClinicBrief is not a diagnostic or clinical-decision product. It organizes user-provided information for appointment preparation only.
 
@@ -26,7 +26,8 @@ ClinicBrief is not a diagnostic or clinical-decision product. It organizes user-
 
 - Patients preparing for surgery or specialist appointments.
 - Carers helping someone explain the same story consistently.
-- People who forget dates, medication context, or practical support details under appointment stress.
+- People with chronic or complex histories who need to explain what changed, what is confirmed, what is still being investigated, and what they want to ask.
+- People who forget dates, medication context, practical support details, or key questions under appointment stress.
 
 ## Why it matters
 
@@ -40,8 +41,10 @@ Patients often repeat their story to multiple clinicians and may forget importan
 - Lucide icons
 - Prisma/Supabase-compatible data model boundary
 - Fireworks-ready provider wrapper with Zod validation
-- Fixture fallback for the synthetic demo
-- Markdown and browser print-to-PDF export fallback
+- Deterministic memory/fixture fallback for demo-critical flows
+- Browser Web Speech API for reviewed speech-to-text source capture
+- Browser `SpeechSynthesis` for local read-back, with no server audio storage
+- Server PDF generation plus Markdown and browser print-to-PDF fallback
 - Novus/Pendo-safe event wrapper with optional `window.pendo.track` forwarding after sanitization
 - Vercel deployment target
 
@@ -55,19 +58,19 @@ Required safety copy appears on landing, brief, and export surfaces:
 
 ## What we learned
 
-The clearest product value came from showing the transformation, not from a generic AI chat surface: scattered synthetic documents become reviewed facts, then a timeline, a brief, a handoff card, a spoken story, and rehearsal questions. The safety boundary also shaped the product: ClinicBrief is useful because it stays focused on organization and preparation.
+The clearest product value came from showing the transformation, not from a generic AI chat surface: messy source material becomes reviewed facts, then a timeline, safe pattern cards, a chronic-aware brief, a handoff card, a spoken story, and rehearsal questions. The safety boundary also shaped the product: ClinicBrief is useful because it stays focused on organization and preparation.
 
 ## Demo video outline
 
 1. Open the public URL and show the landing safety copy.
-2. Start the synthetic pre-op case and show the source documents becoming reviewable facts.
-3. Show the timeline, missing-context questions, pre-op brief, handoff card, and 90-second story.
-4. Practice one rehearsal question, then show a prohibited medical-advice prompt being redirected.
-5. Export with print/save-as-PDF plus Markdown fallback, delete the case, and show `/novus-proof`.
+2. Start the synthetic pre-op case and show source documents becoming reviewable facts.
+3. Create a live chronic case, add guided source text, extract, review, and rebuild the timeline.
+4. Generate/review pattern cards, then show the chronic-aware brief and browser read-back.
+5. Practice one rehearsal question, show a prohibited medical-advice prompt being redirected, export, delete, and show `/novus-proof`.
 
 ## Remaining manual submission steps
 
-- Deploy the public Vercel URL.
+- Ensure the latest `main` is deployed to the public Vercel URL.
 - Install the final Novus/Pendo dashboard snippet on the deployed URL.
 - Capture the Novus dashboard screenshot showing sanitized activity.
 - Record the under-3-minute demo video.
