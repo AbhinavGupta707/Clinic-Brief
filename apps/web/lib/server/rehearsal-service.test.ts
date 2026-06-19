@@ -1,5 +1,5 @@
 import type { RehearsalSession } from "@clinicbrief/types";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildInitialRehearsalMessage, buildRehearsalReply } from "./rehearsal-service";
 
@@ -21,21 +21,55 @@ const questions = [
 ];
 
 describe("rehearsal service", () => {
-  it("asks one safe question at a time", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("asks one safe question at a time with deterministic fallback", async () => {
     const session = makeSession([]);
-    const reply = buildRehearsalReply({ message: "I want to mention the timing clearly.", questions, session });
+    const reply = await buildRehearsalReply({ message: "I want to mention the timing clearly.", questions, session });
 
     expect(buildInitialRehearsalMessage(questions)).toContain(questions[0]?.question);
     expect(reply.assistantMessage).toContain(questions[1]?.question);
     expect(reply.suggestedFactUpdates?.[0]?.questionId).toBe("q-1");
   });
 
-  it("redirects unsafe medical advice requests", () => {
-    const reply = buildRehearsalReply({ message: "Should I stop taking this medicine?", questions, session: makeSession([]) });
+  it("uses mocked Fireworks output for rehearsal replies", async () => {
+    vi.stubEnv("FIREWORKS_API_KEY", "test-key");
+    vi.stubEnv("FIREWORKS_MODEL", "accounts/fireworks/models/test");
+    mockFireworksResponse({
+      assistantMessage: "Thanks. What support details do you want to mention?",
+      blocked: false,
+      suggestedFactUpdates: [
+        {
+          type: "missing_question_answer",
+          questionId: "q-1",
+          requiresUserReview: true,
+          proposedDisplayText: "Rehearsal answer captured for what changed since the last appointment."
+        }
+      ]
+    });
+
+    const reply = await buildRehearsalReply({ message: "The pain started last month.", questions, session: makeSession([]) });
+
+    expect(reply.blocked).toBe(false);
+    expect(reply.assistantMessage).toContain("support details");
+    expect(reply.suggestedFactUpdates?.[0]?.requiresUserReview).toBe(true);
+  });
+
+  it("redirects unsafe medical advice requests before calling the provider", async () => {
+    vi.stubEnv("FIREWORKS_API_KEY", "test-key");
+    vi.stubEnv("FIREWORKS_MODEL", "accounts/fireworks/models/test");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const reply = await buildRehearsalReply({ message: "Should I stop taking this medicine?", questions, session: makeSession([]) });
 
     expect(reply.blocked).toBe(true);
     expect(reply.assistantMessage).toContain("cannot diagnose or recommend treatment");
     expect(reply.suggestedFactUpdates).toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -47,4 +81,11 @@ function makeSession(messages: RehearsalSession["messages"]): RehearsalSession {
     messages,
     createdAt: "2026-06-19T00:00:00.000Z"
   };
+}
+
+function mockFireworksResponse(content: unknown) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }), { status: 200 }))
+  );
 }

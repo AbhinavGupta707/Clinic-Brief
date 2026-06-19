@@ -70,7 +70,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     } satisfies ApiResponse<RehearsalMessageResponse>);
   }
 
-  const reply = buildRehearsalReply({ message: input.message, questions: record.questions, session });
+  const reply = await buildRehearsalReply({ message: input.message, facts: record.facts, questions: record.questions, session });
   const withUser = await appendOrEphemeral(repository, caseId, session, makeRehearsalMessage("user", input.message));
   const withAssistant = await appendOrEphemeral(repository, caseId, withUser, makeRehearsalMessage("assistant", reply.assistantMessage));
 

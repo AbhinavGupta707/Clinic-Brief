@@ -122,7 +122,9 @@ function normalizeAiExtraction(caseId: string, sourceDocuments: SourceDocument[]
         return null;
       }
 
-      const sourceQuote = fact.sourceQuote ? compactText(fact.sourceQuote).slice(0, 300) : createQuoteFromDocument(sourceDocument.text);
+      const compactSourceText = compactText(sourceDocument.text);
+      const compactSourceQuote = fact.sourceQuote ? compactText(fact.sourceQuote).slice(0, 300) : "";
+      const sourceQuote = compactSourceQuote && compactSourceText.includes(compactSourceQuote) ? compactSourceQuote : createQuoteFromDocument(sourceDocument.text);
 
       return {
         id: crypto.randomUUID(),

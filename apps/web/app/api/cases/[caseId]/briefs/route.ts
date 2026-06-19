@@ -1,7 +1,8 @@
-import { briefToMarkdown, buildBriefFromReviewedFacts } from "@clinicbrief/exports";
+import { briefToMarkdown } from "@clinicbrief/exports";
 import type { ApiResponse, AppointmentBrief, CreateBriefResponse } from "@clinicbrief/types";
 import { z } from "zod";
 
+import { buildAppointmentBrief } from "../../../../../lib/server/brief-service";
 import { getClinicRepository } from "../../../../../lib/server/clinic-repository";
 
 const CreateBriefSchema = z
@@ -46,13 +47,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
   }
 
   const briefType = parsed.data?.briefType ?? "PREOP";
-  const briefJson = buildBriefFromReviewedFacts({
-    caseTitle: record.title,
+  const briefJson = await buildAppointmentBrief({
+    record,
     briefType,
-    facts: record.facts,
-    questions: record.questions,
-    timeline: record.timeline,
-    sourcePreviews: record.sourcePreviews,
     appointmentGoal: parsed.data?.appointmentGoal
   });
   const markdown = briefToMarkdown(briefJson);
