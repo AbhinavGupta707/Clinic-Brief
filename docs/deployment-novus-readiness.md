@@ -64,13 +64,41 @@ CLINICBRIEF_DATA_BACKEND=prisma
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/clinicbrief
 ```
 
-Private cloud file storage is not faked. The current storage adapter uses private in-memory URLs and delete cleanup for the prototype path. Production storage should implement a Supabase Storage adapter with private bucket writes, signed reads only when needed, and delete-by-case cleanup.
+Private cloud file storage is not faked. The storage adapter uses private in-memory URLs and delete cleanup for the prototype path, or real Supabase Storage private bucket writes and delete-by-case cleanup when explicitly configured.
 
 Storage backend selection is explicit:
 
 ```bash
 CLINICBRIEF_STORAGE_BACKEND=memory
 CLINICBRIEF_STORAGE_BACKEND=supabase
+```
+
+`memory` is the default when `CLINICBRIEF_STORAGE_BACKEND` is unset. Supabase Storage is used only when all of these are present in the server environment:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_STORAGE_BUCKET=clinicbrief
+```
+
+The service role key must remain server-only. Do not expose it through client components, `NEXT_PUBLIC_` variables, screenshots, analytics, or browser logs.
+
+Supabase private object paths are case scoped:
+
+```txt
+cases/{caseId}/{uuid}-{safeName}
+```
+
+Case deletion lists objects by the `cases/{caseId}/` prefix and deletes the returned object keys before marking repository records deleted. If Supabase storage is selected without the required env, uploads/deletes fail closed instead of falling back to fake cloud storage.
+
+Live Supabase upload/delete smoke, once credentials are available:
+
+```bash
+CLINICBRIEF_STORAGE_BACKEND=supabase \
+NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY \
+SUPABASE_STORAGE_BUCKET=clinicbrief \
+node -e 'const url=process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/,"");const bucket=process.env.SUPABASE_STORAGE_BUCKET;const key="cases/smoke-storage-"+Date.now()+"/synthetic-note.txt";const headers={apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`};(async()=>{let r=await fetch(`${url}/storage/v1/object/${bucket}/${key}`,{method:"POST",headers:{...headers,"content-type":"text/plain","x-upsert":"false"},body:"synthetic smoke file"});if(!r.ok)throw new Error(`upload ${r.status}`);r=await fetch(`${url}/storage/v1/object/${bucket}`,{method:"DELETE",headers:{...headers,"content-type":"application/json"},body:JSON.stringify({prefixes:[key]})});if(!r.ok)throw new Error(`delete ${r.status}`);console.log(`Supabase storage smoke uploaded and deleted ${key}`);})().catch((error)=>{console.error(error);process.exit(1);})'
 ```
 
 `/api/health` and `/api/system-readiness` report whether storage is using the private memory fallback or whether Supabase storage has been selected with required env present. The readiness payload lists env variable names only and never returns secret values, bucket names, object keys, file names, source text, or source quotes.

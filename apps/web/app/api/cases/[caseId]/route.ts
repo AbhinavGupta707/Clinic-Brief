@@ -10,14 +10,31 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const repository = await getClinicRepository();
-  const filesRemoved = deletePrivateFilesForCase(caseId);
+  let storageCleanup: Awaited<ReturnType<typeof deletePrivateFilesForCase>>;
+
+  try {
+    storageCleanup = await deletePrivateFilesForCase(caseId);
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "STORAGE_CLEANUP_FAILED",
+          message: "Private file cleanup could not be completed. Check storage backend configuration before deleting the case."
+        }
+      },
+      { status: 503 }
+    );
+  }
+
   const receipt = await repository.deleteCase(caseId);
 
   return NextResponse.json({
     ok: true,
     data: {
       ...receipt,
-      filesRemoved
+      filesRemoved: storageCleanup.filesRemoved,
+      storageCleanup
     }
   });
 }

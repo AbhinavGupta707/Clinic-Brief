@@ -54,14 +54,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
 
   const parsed = await parseDocumentPayload(payload.data);
   const now = new Date().toISOString();
-  const storage = payload.data.fileBuffer
-    ? await savePrivateFile({
-        caseId,
-        fileName: payload.data.fileName,
-        contentType: payload.data.contentType ?? "application/octet-stream",
-        bytes: payload.data.fileBuffer
-      })
-    : null;
+  let storage: Awaited<ReturnType<typeof savePrivateFile>> | null = null;
+
+  try {
+    storage = payload.data.fileBuffer
+      ? await savePrivateFile({
+          caseId,
+          fileName: payload.data.fileName,
+          contentType: payload.data.contentType ?? "application/octet-stream",
+          bytes: payload.data.fileBuffer
+        })
+      : null;
+  } catch {
+    return Response.json(
+      {
+        ok: false,
+        error: {
+          code: "STORAGE_UNAVAILABLE",
+          message: "Private file storage is not available. Check storage backend configuration before uploading files."
+        }
+      } satisfies ApiResponse<AddDocumentResponse>,
+      { status: 503 }
+    );
+  }
+
   const rawText = parsed.text || payload.data.fallbackText || undefined;
   const document = {
     id: crypto.randomUUID(),
