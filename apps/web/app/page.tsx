@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, FileText, ShieldCheck, Stethoscope } from "lucide-react";
+import { preopCase } from "@clinicbrief/fixtures";
 import { SafetyDisclaimer } from "../components/safety-disclaimer";
 
 export default function HomePage() {
@@ -41,23 +42,35 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-            <div className="grid gap-4">
-              {[
-                { icon: FileText, title: "Messy inputs", body: "Upload or paste notes, letters, medication lists, and appointment details." },
-                { icon: ShieldCheck, title: "Patient review", body: "Every extracted fact keeps confidence, source, and edit controls." },
-                { icon: Stethoscope, title: "Appointment-ready", body: "Generate a concise brief, handoff card, and rehearsal questions." }
-              ].map((item) => (
-                <div key={item.title} className="grid grid-cols-[44px_1fr] gap-3 rounded-md border border-cyan-100 p-4">
+          <div className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+            <div className="flex items-center justify-between gap-3 border-b border-cyan-100 pb-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.08em] text-clinic-primary">Synthetic pre-op demo</p>
+                <h2 className="mt-1 text-xl font-semibold text-clinic-ink">Documents to appointment brief</h2>
+              </div>
+              <ShieldCheck className="shrink-0 text-clinic-success" size={24} aria-hidden />
+            </div>
+
+            <div className="grid gap-3">
+              {preopCase.documents.slice(0, 3).map((document) => (
+                <div key={document.id} className="grid grid-cols-[44px_1fr] gap-3 rounded-md border border-cyan-100 p-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-md bg-clinic-surface text-clinic-primary">
-                    <item.icon size={22} aria-hidden />
+                    <FileText size={21} aria-hidden />
                   </div>
-                  <div>
-                    <h2 className="font-semibold text-clinic-ink">{item.title}</h2>
-                    <p className="mt-1 text-sm leading-6 text-clinic-muted">{item.body}</p>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-semibold text-clinic-ink">{document.fileName.replace("synthetic-", "")}</h3>
+                    <p className="mt-1 line-clamp-2 text-sm leading-6 text-clinic-muted">{document.rawText}</p>
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="grid gap-3 rounded-md border border-cyan-100 bg-clinic-surface p-4">
+              <div className="flex items-center gap-3">
+                <Stethoscope className="text-clinic-primary" size={21} aria-hidden />
+                <h3 className="font-semibold text-clinic-ink">{preopCase.expectedBrief.title}</h3>
+              </div>
+              <p className="text-sm leading-6 text-clinic-muted">{preopCase.expectedBrief.oneLineReasonForVisit}</p>
             </div>
           </div>
         </div>
