@@ -200,8 +200,11 @@ export function ReviewClient({ caseId }: { caseId: string }) {
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <Link className="inline-flex min-h-11 items-center rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white hover:bg-clinic-primaryDark" href={`/cases/${caseId}/brief`}>
-          Continue to brief
+        <Link className="inline-flex min-h-11 items-center rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white hover:bg-clinic-primaryDark" href={`/cases/${caseId}`}>
+          View dashboard
+        </Link>
+        <Link className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href={`/cases/${caseId}/brief`}>
+          Generate brief
         </Link>
         <Link className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href={`/cases/${caseId}/intake`}>
           Add more sources

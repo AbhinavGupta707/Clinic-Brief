@@ -281,7 +281,7 @@ export function IntakeClient({ caseId }: { caseId: string }) {
         </p>
       ) : null}
 
-      <section className="grid gap-4 rounded-md border border-clinic-line bg-white p-5">
+      <section id="extract" className="grid scroll-mt-6 gap-4 rounded-md border border-clinic-line bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-clinic-ink">Source previews</h2>
