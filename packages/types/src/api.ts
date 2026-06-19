@@ -1,5 +1,6 @@
 import type { AppointmentBrief, BriefType, CaseMode, ClinicCaseSnapshot, DeleteCaseReceipt, DocumentType, ExtractedFact, HealthDocument, RehearsalSession, SourcePreview, TimelineEvent } from "./clinic";
 import type { MissingQuestion, RehearsalMode, RehearsalSuggestedFactUpdate } from "./extraction";
+import type { PatternCard } from "./live-flow";
 import type { RuntimeReadiness } from "./runtime";
 
 export type ApiError = {
@@ -65,6 +66,23 @@ export type UpdateFactResponse = {
 
 export type RebuildTimelineResponse = {
   timeline: TimelineEvent[];
+};
+
+export type ListPatternCardsResponse = {
+  patternCards: PatternCard[];
+};
+
+export type GeneratePatternCardsResponse = {
+  patternCards: PatternCard[];
+};
+
+export type UpdatePatternCardRequest = {
+  suggestedBriefText?: string;
+  userStatus: PatternCard["userStatus"];
+};
+
+export type UpdatePatternCardResponse = {
+  patternCard: PatternCard;
 };
 
 export type CreateBriefRequest = {
