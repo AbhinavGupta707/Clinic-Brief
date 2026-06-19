@@ -1,6 +1,6 @@
 import type { ApiResponse, CreateCaseResponse } from "@clinicbrief/types";
 import { z } from "zod";
-import { createCase } from "../../../lib/server/case-store";
+import { getClinicRepository } from "../../../lib/server/clinic-repository";
 
 const CreateCaseSchema = z.object({
   title: z.string().trim().min(2).max(120),
@@ -25,7 +25,8 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const record = createCase({ title: parsed.data.title, mode: parsed.data.mode });
+  const repository = await getClinicRepository();
+  const record = await repository.createCase({ title: parsed.data.title, mode: parsed.data.mode });
 
   return Response.json({
     ok: true,

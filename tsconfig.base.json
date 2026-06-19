@@ -20,7 +20,8 @@
       "@clinicbrief/events": ["packages/events/src/index.ts"],
       "@clinicbrief/documents": ["packages/documents/src/index.ts"],
       "@clinicbrief/exports": ["packages/exports/src/index.ts"],
-      "@clinicbrief/fixtures": ["packages/fixtures/src/index.ts"]
+      "@clinicbrief/fixtures": ["packages/fixtures/src/index.ts"],
+      "@clinicbrief/db": ["packages/db/src/index.ts"]
     }
   }
 }

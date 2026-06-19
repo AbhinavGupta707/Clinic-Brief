@@ -1,3 +1,6 @@
+import type { AppointmentBrief, BriefType, CaseMode, ClinicCaseSnapshot, DeleteCaseReceipt, DocumentType, ExtractedFact, HealthDocument, RehearsalSession, SourcePreview, TimelineEvent } from "./clinic";
+import type { MissingQuestion } from "./extraction";
+
 export type ApiError = {
   code: string;
   message: string;
@@ -17,6 +20,10 @@ export type CreateCaseRequest = {
 
 export type CreateCaseResponse = {
   caseId: string;
+};
+
+export type GetCaseResponse = {
+  case: ClinicCaseSnapshot;
 };
 
 export type AddDocumentRequest = {
@@ -55,5 +62,31 @@ export type UpdateFactResponse = {
   fact: ExtractedFact;
 };
 
-import type { CaseMode, DocumentType, ExtractedFact, HealthDocument, SourcePreview } from "./clinic";
-import type { MissingQuestion } from "./extraction";
+export type RebuildTimelineResponse = {
+  timeline: TimelineEvent[];
+};
+
+export type CreateBriefRequest = {
+  briefType: BriefType;
+  appointmentGoal?: string;
+};
+
+export type CreateBriefResponse = {
+  briefId: string;
+  brief: AppointmentBrief;
+};
+
+export type RehearsalMessageRequest = {
+  sessionId?: string;
+  message: string;
+  mode: "PREOP_NURSE" | "CONSULTANT" | "GP";
+};
+
+export type RehearsalMessageResponse = {
+  sessionId: string;
+  session: RehearsalSession;
+  assistantMessage: string;
+  suggestedFactUpdates?: Array<Record<string, unknown>>;
+};
+
+export type DeleteCaseResponse = DeleteCaseReceipt;

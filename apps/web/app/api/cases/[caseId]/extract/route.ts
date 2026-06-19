@@ -1,7 +1,7 @@
 import { EXTRACTION_SYSTEM_PROMPT, ExtractionResultSchema, getSafetyRedirect, runClinicJson } from "@clinicbrief/ai";
 import type { ApiResponse, ExtractCaseResponse, ExtractedFact } from "@clinicbrief/types";
 import { z } from "zod";
-import { createFixtureFactsForCase, createFixtureQuestions, getCase, setExtraction } from "../../../../../lib/server/case-store";
+import { createFixtureFactsForCase, createFixtureQuestions, getClinicRepository } from "../../../../../lib/server/clinic-repository";
 
 const ExtractRequestSchema = z
   .object({
@@ -11,7 +11,8 @@ const ExtractRequestSchema = z
 
 export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }): Promise<Response> {
   const { caseId } = await params;
-  const record = getCase(caseId);
+  const repository = await getClinicRepository();
+  const record = await repository.getCase(caseId);
 
   if (!record) {
     return notFound();
@@ -29,7 +30,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
 
 export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }): Promise<Response> {
   const { caseId } = await params;
-  const record = getCase(caseId);
+  const repository = await getClinicRepository();
+  const record = await repository.getCase(caseId);
 
   if (!record || !record.consentAccepted) {
     return notFound();
@@ -71,7 +73,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       const validated = ExtractionResultSchema.parse(extracted);
       const facts = validated.facts.map((fact, index) => toCaseFact(fact, caseId, sourceDocuments[index]?.id ?? sourceDocuments[0]?.id));
 
-      setExtraction(caseId, facts, validated.questions);
+      await repository.setExtraction(caseId, facts, validated.questions);
 
       return Response.json({
         ok: true,
@@ -89,7 +91,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
   return fixtureExtraction(caseId, sourceDocuments[0]?.id);
 }
 
-function fixtureExtraction(caseId: string, documentId?: string): Response {
+async function fixtureExtraction(caseId: string, documentId?: string): Promise<Response> {
+  const repository = await getClinicRepository();
   const facts = createFixtureFactsForCase(caseId, documentId);
   const questions = createFixtureQuestions();
   const validated = ExtractionResultSchema.parse({
@@ -103,7 +106,7 @@ function fixtureExtraction(caseId: string, documentId?: string): Response {
     questions
   });
 
-  setExtraction(caseId, facts, validated.questions);
+  await repository.setExtraction(caseId, facts, validated.questions);
 
   return Response.json({
     ok: true,

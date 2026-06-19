@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@clinicbrief/ai": "workspace:*",
+    "@clinicbrief/db": "workspace:*",
     "@clinicbrief/documents": "workspace:*",
     "@clinicbrief/events": "workspace:*",
     "@clinicbrief/exports": "workspace:*",

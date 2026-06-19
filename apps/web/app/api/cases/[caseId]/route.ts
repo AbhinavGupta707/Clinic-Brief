@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getClinicRepository } from "../../../../lib/server/clinic-repository";
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
@@ -7,14 +8,11 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ ok: false, error: { code: "missing_case_id", message: "Case id is required." } }, { status: 400 });
   }
 
+  const repository = await getClinicRepository();
+  const receipt = await repository.deleteCase(caseId);
+
   return NextResponse.json({
     ok: true,
-    data: {
-      status: "DELETED",
-      deleted: true,
-      recordsMarkedDeleted: 1,
-      filesRemoved: 0,
-      storageAction: caseId === "sample-preop" ? "synthetic_fixture_no_private_files" : "mark_deleted_until_storage_is_configured"
-    }
+    data: receipt
   });
 }

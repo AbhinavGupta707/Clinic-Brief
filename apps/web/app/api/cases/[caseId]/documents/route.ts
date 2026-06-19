@@ -1,7 +1,7 @@
 import { createSourceSnippet, parseImageBuffer, parsePdfBuffer, parseTextNote } from "@clinicbrief/documents";
 import type { AddDocumentResponse, ApiResponse, DocumentType, ListDocumentsResponse } from "@clinicbrief/types";
 import { z } from "zod";
-import { addDocument, getCase, makeSourcePreview } from "../../../../../lib/server/case-store";
+import { getClinicRepository, makeSourcePreview } from "../../../../../lib/server/clinic-repository";
 
 const JsonDocumentSchema = z.object({
   type: z.enum(["PDF", "IMAGE", "TEXT_NOTE", "VOICE_TRANSCRIPT"]),
@@ -11,7 +11,8 @@ const JsonDocumentSchema = z.object({
 
 export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }): Promise<Response> {
   const { caseId } = await params;
-  const record = getCase(caseId);
+  const repository = await getClinicRepository();
+  const record = await repository.getCase(caseId);
 
   if (!record) {
     return notFound<ListDocumentsResponse>("CASE_NOT_FOUND", "Create a consented case before adding documents.");
@@ -28,7 +29,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
 
 export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }): Promise<Response> {
   const { caseId } = await params;
-  const record = getCase(caseId);
+  const repository = await getClinicRepository();
+  const record = await repository.getCase(caseId);
 
   if (!record || !record.consentAccepted || caseId === "sample-preop") {
     return notFound<AddDocumentResponse>("CASE_NOT_FOUND", "Create a consented case before adding documents.");
@@ -67,7 +69,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     needsManualFallback: parsed.needsManualFallback
   });
 
-  addDocument(caseId, document, sourcePreview);
+  await repository.addDocument(caseId, document, sourcePreview);
 
   return Response.json({
     ok: true,

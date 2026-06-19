@@ -56,6 +56,10 @@ pnpm build
 
 The scaffold includes deterministic fixture fallbacks so the demo path can work before Fireworks, Supabase, or Novus credentials are wired.
 
+## Data Backend
+
+Local development defaults to `CLINICBRIEF_DATA_BACKEND=memory`, which keeps the synthetic demo and upload/review flow working without database credentials. Set `CLINICBRIEF_DATA_BACKEND=prisma` with `DATABASE_URL` to use the Prisma/Supabase-shaped repository boundary. See `docs/product-data-foundation.md`.
+
 ## Final Integration
 
 See `docs/final-integration-handoff.md` for the current demo-ready status, verified checks, smoke-tested paths, and remaining manual submission tasks.

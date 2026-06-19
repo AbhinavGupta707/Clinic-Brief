@@ -17,7 +17,9 @@ model PatientCase {
   consentedAt     DateTime?
   anonymousUserId String?
   documents       HealthDocument[]
+  sourcePreviews  SourcePreview[]
   facts           ExtractedFact[]
+  questions       MissingQuestion[]
   timeline        TimelineEvent[]
   medications     Medication[]
   symptoms        SymptomLog[]
@@ -55,6 +57,22 @@ model HealthDocument {
   rawText    String?
   sourceHash String?
   createdAt  DateTime     @default(now())
+  sourcePreviews SourcePreview[]
+}
+
+model SourcePreview {
+  id                  String       @id @default(cuid())
+  caseId              String
+  case                PatientCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  sourceId            String
+  sourceType          DocumentType
+  documentId          String
+  document            HealthDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  snippet             String
+  confidence          Float
+  parser              String
+  needsManualFallback Boolean      @default(false)
+  createdAt           DateTime     @default(now())
 }
 
 enum DocumentType {
@@ -71,10 +89,25 @@ model ExtractedFact {
   case        PatientCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
   sourceDocId String?
   category    FactCategory
+  displayText String
   value       Json
   confidence  Float
   userStatus  ReviewStatus @default(UNREVIEWED)
+  sourceQuote String?
   createdAt   DateTime     @default(now())
+}
+
+model MissingQuestion {
+  id                            String      @id @default(cuid())
+  caseId                        String
+  case                          PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  priority                      String
+  question                      String
+  whyItMattersForAppointment    String
+  answerType                    String
+  answer                        Json?
+  answeredAt                    DateTime?
+  createdAt                     DateTime    @default(now())
 }
 
 enum FactCategory {

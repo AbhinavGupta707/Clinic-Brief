@@ -1,6 +1,6 @@
 import type { ApiResponse, UpdateFactResponse } from "@clinicbrief/types";
 import { z } from "zod";
-import { updateFact } from "../../../../../../lib/server/case-store";
+import { getClinicRepository } from "../../../../../../lib/server/clinic-repository";
 
 const UpdateFactSchema = z.object({
   displayText: z.string().trim().min(1).max(500).optional(),
@@ -25,7 +25,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
     );
   }
 
-  const fact = updateFact(caseId, factId, parsed.data);
+  const repository = await getClinicRepository();
+  const fact = await repository.updateFact(caseId, factId, parsed.data);
 
   if (!fact) {
     return Response.json(
