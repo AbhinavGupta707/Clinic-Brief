@@ -5,7 +5,7 @@ export default async function IntakePage({ params }: { params: Promise<{ caseId:
   const { caseId } = await params;
 
   return (
-    <AppShell eyebrow={`Case ${caseId}`} title="Add documents and notes">
+    <AppShell eyebrow={`Case ${caseId}`} title="Guided intake">
       <IntakeClient caseId={caseId} />
     </AppShell>
   );

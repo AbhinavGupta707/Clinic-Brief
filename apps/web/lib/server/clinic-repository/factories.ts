@@ -40,6 +40,7 @@ export function makeSourcePreview(input: {
     confidence: input.confidence,
     parser: input.parser,
     needsManualFallback: input.needsManualFallback,
+    metadata: input.document.metadata,
     createdAt: now
   };
 }

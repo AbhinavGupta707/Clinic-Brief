@@ -1,5 +1,5 @@
 import { createSourceSnippet, parseImageBuffer, parsePdfBuffer, parseTextNote } from "@clinicbrief/documents";
-import type { AddDocumentResponse, ApiResponse, DocumentType, ListDocumentsResponse } from "@clinicbrief/types";
+import type { AddDocumentResponse, ApiResponse, DocumentType, HealthDocumentMetadata, ListDocumentsResponse } from "@clinicbrief/types";
 import { z } from "zod";
 import { getClinicRepository, makeSourcePreview } from "../../../../../lib/server/clinic-repository";
 import { hashText, savePrivateFile } from "../../../../../lib/server/private-storage";
@@ -7,8 +7,15 @@ import { hashText, savePrivateFile } from "../../../../../lib/server/private-sto
 const JsonDocumentSchema = z.object({
   type: z.enum(["PDF", "IMAGE", "TEXT_NOTE", "VOICE_TRANSCRIPT"]),
   fileName: z.string().trim().max(120).optional(),
-  text: z.string().optional()
+  text: z.string().optional(),
+  metadata: z.unknown().optional()
 });
+
+const MetadataSchema = z
+  .object({
+    kind: z.enum(["guided_intake", "uploaded_document", "text_note", "voice_transcript", "sample"])
+  })
+  .passthrough();
 
 export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }): Promise<Response> {
   const { caseId } = await params;
@@ -87,6 +94,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     fileUrl: storage?.fileUrl,
     rawText,
     sourceHash: storage?.sourceHash ?? (rawText ? hashText(rawText) : undefined),
+    metadata: payload.data.metadata,
     createdAt: now
   };
   const sourcePreview = makeSourcePreview({
@@ -118,6 +126,7 @@ type DocumentPayload =
         fallbackText?: string;
         fileBuffer?: ArrayBuffer;
         contentType?: string;
+        metadata?: HealthDocumentMetadata;
       };
     }
   | { success: false; message: string };
@@ -131,10 +140,15 @@ async function readDocumentPayload(request: Request): Promise<DocumentPayload> {
     const text = asString(formData.get("text"));
     const fallbackText = asString(formData.get("fallbackText"));
     const declaredType = asString(formData.get("type"));
+    const metadata = parseMetadata(asString(formData.get("metadata")));
     const inferredType = inferDocumentType(file instanceof File ? file : null, declaredType);
 
     if (!inferredType) {
       return { success: false, message: "Add a text note, PDF, or image file." };
+    }
+
+    if (metadata === "invalid") {
+      return { success: false, message: "Document metadata was not recognized." };
     }
 
     return {
@@ -145,7 +159,8 @@ async function readDocumentPayload(request: Request): Promise<DocumentPayload> {
         text,
         fallbackText,
         fileBuffer: file instanceof File ? await file.arrayBuffer() : undefined,
-        contentType: file instanceof File ? file.type : undefined
+        contentType: file instanceof File ? file.type : undefined,
+        metadata
       }
     };
   }
@@ -157,12 +172,19 @@ async function readDocumentPayload(request: Request): Promise<DocumentPayload> {
     return { success: false, message: "Add a text note, PDF boundary, or image boundary payload." };
   }
 
+  const metadata = parseJsonMetadata(parsed.data.metadata);
+
+  if (metadata === "invalid") {
+    return { success: false, message: "Document metadata was not recognized." };
+  }
+
   return {
     success: true,
     data: {
       type: parsed.data.type,
       fileName: parsed.data.fileName || defaultFileName(parsed.data.type),
-      text: parsed.data.text
+      text: parsed.data.text,
+      metadata
     }
   };
 }
@@ -217,6 +239,42 @@ function defaultFileName(type: Exclude<DocumentType, "SAMPLE">): string {
 
 function asString(value: FormDataEntryValue | null): string | undefined {
   return typeof value === "string" ? value : undefined;
+}
+
+function parseMetadata(value: string | undefined): HealthDocumentMetadata | undefined | "invalid" {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  try {
+    return parseJsonMetadata(JSON.parse(value)) ?? "invalid";
+  } catch {
+    return "invalid";
+  }
+}
+
+function parseJsonMetadata(value: unknown): HealthDocumentMetadata | undefined | "invalid" {
+  if (value == null) {
+    return undefined;
+  }
+
+  const parsed = MetadataSchema.safeParse(value);
+
+  if (!parsed.success) {
+    return "invalid";
+  }
+
+  const metadata = parsed.data as HealthDocumentMetadata;
+
+  if ("storesAudio" in metadata && metadata.storesAudio !== false) {
+    return "invalid";
+  }
+
+  if ("userReviewed" in metadata && metadata.userReviewed !== true) {
+    return "invalid";
+  }
+
+  return metadata;
 }
 
 function notFound<T>(code: string, message: string): Response {
