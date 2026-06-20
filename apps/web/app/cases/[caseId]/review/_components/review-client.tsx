@@ -15,6 +15,7 @@ export function ReviewClient({ caseId }: { caseId: string }) {
   const [draftText, setDraftText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [pendingFactId, setPendingFactId] = useState<string | null>(null);
+  const [savedFactId, setSavedFactId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadExtraction();
@@ -61,13 +62,22 @@ export function ReviewClient({ caseId }: { caseId: string }) {
   }
 
   async function updateFactState(fact: ExtractedFact, userStatus: ExtractedFact["userStatus"], displayText = fact.displayText) {
+    const cleanDisplayText = displayText.trim();
+
+    if (userStatus === "EDITED" && cleanDisplayText.length === 0) {
+      setStatus("Edited facts need text before they can be saved.");
+      return;
+    }
+
     const nextFact: ExtractedFact = {
       ...fact,
-      displayText,
+      displayText: cleanDisplayText,
       userStatus
     };
 
     setPendingFactId(fact.id);
+    setSavedFactId(null);
+    setStatus(null);
     setFacts((current) => current.map((item) => (item.id === fact.id ? nextFact : item)));
     setEditingFactId(null);
     setDraftText("");
@@ -76,14 +86,23 @@ export function ReviewClient({ caseId }: { caseId: string }) {
       const response = await fetch(`/api/cases/${caseId}/facts/${fact.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayText, userStatus })
+        body: JSON.stringify({ displayText: cleanDisplayText, userStatus })
       });
       const payload = (await response.json().catch(() => null)) as ApiResponse<UpdateFactResponse> | null;
 
       if (payload?.ok && payload.data) {
         const updated = payload.data.fact;
         setFacts((current) => current.map((item) => (item.id === fact.id ? updated : item)));
+        setSavedFactId(fact.id);
+        setStatus(userStatus === "EDITED" ? "Edit saved. This wording will be used in the timeline and brief." : null);
+        window.setTimeout(() => setSavedFactId((current) => (current === fact.id ? null : current)), 3000);
+      } else {
+        setFacts((current) => current.map((item) => (item.id === fact.id ? fact : item)));
+        setStatus(payload?.error?.message ?? "Could not save this review change. Try again.");
       }
+    } catch {
+      setFacts((current) => current.map((item) => (item.id === fact.id ? fact : item)));
+      setStatus("Could not save this review change. Check your connection and try again.");
     } finally {
       setPendingFactId(null);
     }
@@ -100,6 +119,8 @@ export function ReviewClient({ caseId }: { caseId: string }) {
   function startEdit(fact: ExtractedFact) {
     setEditingFactId(fact.id);
     setDraftText(fact.displayText);
+    setStatus(null);
+    setSavedFactId(null);
   }
 
   if (isLoading) {
@@ -148,12 +169,31 @@ export function ReviewClient({ caseId }: { caseId: string }) {
               </p>
             </div>
             {fact.sourceQuote ? <p className="rounded-md bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted">Source snippet: {fact.sourceQuote}</p> : null}
+            {savedFactId === fact.id ? <p className="text-sm font-semibold text-clinic-success">Saved.</p> : null}
             <div className="flex flex-wrap gap-3">
               {editingFactId === fact.id ? (
-                <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-4 py-2 font-semibold text-white hover:bg-emerald-700" onClick={() => updateFactState(fact, "EDITED", draftText)} type="button">
-                  <Check aria-hidden className="h-5 w-5" />
-                  Save edit
-                </button>
+                <>
+                  <button
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={pendingFactId === fact.id || draftText.trim().length === 0 || draftText.trim() === fact.displayText.trim()}
+                    onClick={() => updateFactState(fact, "EDITED", draftText)}
+                    type="button"
+                  >
+                    <Check aria-hidden className="h-5 w-5" />
+                    {pendingFactId === fact.id ? "Saving edit..." : "Save edit"}
+                  </button>
+                  <button
+                    className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50"
+                    disabled={pendingFactId === fact.id}
+                    onClick={() => {
+                      setEditingFactId(null);
+                      setDraftText("");
+                    }}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                </>
               ) : (
                 <>
                   <button

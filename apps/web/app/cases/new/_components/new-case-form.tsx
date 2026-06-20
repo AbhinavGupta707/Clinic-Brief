@@ -21,15 +21,19 @@ export function NewCaseForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setDashboardUrl(null);
 
     if (!consent) {
       setError("Consent is required before ClinicBrief can create or store case information.");
       return;
     }
+
+    let didCreateCase = false;
 
     try {
       setIsSubmitting(true);
@@ -56,18 +60,27 @@ export function NewCaseForm() {
       setStatus("Opening case dashboard...");
       trackEvent(Events.ConsentAccepted, { mode });
       trackEvent(Events.CaseCreated, { mode });
-      const dashboardUrl = `/cases/${payload.data.caseId}`;
-      router.push(dashboardUrl);
+      const nextDashboardUrl = `/cases/${payload.data.caseId}`;
+      didCreateCase = true;
+      setDashboardUrl(nextDashboardUrl);
+      router.push(nextDashboardUrl);
       window.setTimeout(() => {
-        if (window.location.pathname !== dashboardUrl) {
-          window.location.assign(dashboardUrl);
+        if (window.location.pathname !== nextDashboardUrl) {
+          setStatus("Still opening your dashboard. Use the link below if this takes more than a few seconds.");
         }
-      }, 400);
+      }, 2500);
+      window.setTimeout(() => {
+        if (window.location.pathname !== nextDashboardUrl) {
+          window.location.assign(nextDashboardUrl);
+        }
+      }, 6000);
     } catch (caughtError) {
       setStatus(null);
       setError(caughtError instanceof DOMException && caughtError.name === "AbortError" ? "Creating the case took too long. Refresh and try again, or use the sample demo while the live service warms up." : "Could not create the case yet. Check the deployment configuration and try again.");
     } finally {
-      setIsSubmitting(false);
+      if (!didCreateCase) {
+        setIsSubmitting(false);
+      }
     }
   }
 
@@ -105,6 +118,11 @@ export function NewCaseForm() {
       </label>
       {error ? <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-clinic-warning">{error}</p> : null}
       {status ? <p className="text-sm font-medium text-clinic-muted" role="status">{status}</p> : null}
+      {dashboardUrl ? (
+        <a className="text-sm font-semibold text-clinic-primary underline-offset-4 hover:underline" href={dashboardUrl}>
+          Open dashboard directly
+        </a>
+      ) : null}
       <button
         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={isSubmitting}
