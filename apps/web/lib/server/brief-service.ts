@@ -86,7 +86,7 @@ function buildBriefUserPrompt({
             confirmedVsInvestigated:
               "Keep reviewed user-reported confirmed history separate from reviewed conditions, explanations, or symptoms being investigated. Never present investigated items as diagnoses.",
             factUse:
-              "Only use reviewedFacts and timeline events tied to reviewed facts. Missing questions may be listed as questions to ask, not as answered facts.",
+              "Only use reviewedFacts and timeline events tied to reviewed facts. Do not include raw missing-question text in shareable fields unless it is already represented by a reviewed fact.",
             output:
               "When chronic facts are present, include chronicSections with reportedConfirmedHistory, conditionsBeingInvestigated, baselineSymptomsAndFlares, medicationAndTreatmentHistory, functionalImpact, and appointmentGoals. Also keep the main brief fields readable for printing."
           }
@@ -106,13 +106,13 @@ function buildBriefUserPrompt({
         approximateDate: event.approximateDate,
         title: event.title,
         description: event.description
-      })),
+    })),
     missingQuestions: record.questions.map((question) => ({
       id: question.id,
       priority: question.priority,
-      question: question.question,
-      whyItMattersForAppointment: question.whyItMattersForAppointment,
-      answerType: question.answerType
+      answerType: question.answerType,
+      chronicFieldId: question.chronicFieldId,
+      requiresUserReviewBeforeSharing: true
     }))
   });
 }
@@ -187,12 +187,6 @@ function buildChronicSections(
       sectioned.appointmentGoals.push(text);
     } else if (chronicFieldId === "changed_since_last_appointment" || chronicFieldId === "possible_triggers_to_discuss") {
       sectioned.baselineSymptomsAndFlares.push(text);
-    }
-  }
-
-  for (const question of questions) {
-    if (question.chronicFieldId === "questions_for_clinician") {
-      sectioned.appointmentGoals.push(question.question);
     }
   }
 

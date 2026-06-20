@@ -127,9 +127,9 @@ export function buildBriefFromReviewedFacts(input: {
   const notableFacts = facts.filter((fact) => fact.category !== "MEDICATION" && fact.category !== "QUESTION" && fact.category !== "SYMPTOM");
   const questionsForClinician = [
     ...questionFacts.map((fact) => cleanDisplayText(fact.displayText)),
-    ...input.questions.slice(0, 6).map((question) => question.question)
+    ...(input.questions.length > 0 ? ["Review extracted missing-context questions in ClinicBrief, then add only the questions you want to share."] : [])
   ];
-  const openUncertainties = input.questions.slice(0, 6).map((question) => question.whyItMattersForAppointment);
+  const openUncertainties = input.questions.length > 0 ? ["Some extracted questions still need user review before sharing."] : [];
   const storyFacts = facts.slice(0, 4).map((fact) => cleanDisplayText(fact.displayText));
 
   const patternNotes = reviewedPatternCards.map((card) => cleanDisplayText(card.reviewerEditedText ?? card.suggestedBriefText));
