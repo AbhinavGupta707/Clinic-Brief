@@ -1,6 +1,6 @@
 "use client";
 
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events } from "@clinicbrief/events";
 import type { AddDocumentResponse, ApiResponse, CreateCaseResponse, ExtractCaseResponse } from "@clinicbrief/types";
 import {
   ArrowLeft,
@@ -349,13 +349,13 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
       const caseId = casePayload.data.caseId;
       setCreatedCaseId(caseId);
-      trackEvent(Events.ConsentAccepted, { mode: selectedMode });
-      trackEvent(Events.CaseCreated, { mode: selectedMode, sourceCount: 1 });
+      window.pendo?.track?.(Events.ConsentAccepted, { mode: selectedMode });
+      window.pendo?.track?.(Events.CaseCreated, { mode: selectedMode, sourceCount: 1 });
 
       await saveOptionalDocuments(caseId);
 
       setStatus("ClinicBrief is organizing your appointment pack for review...");
-      trackEvent(Events.ExtractionStarted, { sourceCount: 1 + (hasDocumentInput ? 1 : 0) });
+      window.pendo?.track?.(Events.ExtractionStarted, { sourceCount: 1 + (hasDocumentInput ? 1 : 0) });
       const extractResponse = await fetchWithTimeout(
         `/api/cases/${caseId}/extract`,
         {
@@ -377,7 +377,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
         return;
       }
 
-      trackEvent(Events.ExtractionCompleted, {
+      window.pendo?.track?.(Events.ExtractionCompleted, {
         factCount: extractPayload.data.facts.length,
         questionCount: extractPayload.data.questions.length
       });
@@ -411,7 +411,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       const payload = (await response.json()) as ApiResponse<AddDocumentResponse>;
 
       if (payload.ok) {
-        trackEvent(Events.TextNoteAdded, { documentCount: 1 });
+        window.pendo?.track?.(Events.TextNoteAdded, { documentCount: 1 });
       }
     }
 
@@ -441,7 +441,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       const payload = (await response.json()) as ApiResponse<AddDocumentResponse>;
 
       if (payload.ok) {
-        trackEvent(Events.DocumentUploaded, { documentCount: 1 });
+        window.pendo?.track?.(Events.DocumentUploaded, { documentCount: 1 });
       }
     }
   }

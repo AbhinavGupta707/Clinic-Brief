@@ -1,6 +1,6 @@
 "use client";
 
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events } from "@clinicbrief/events";
 import type { ApiResponse, ExtractCaseResponse, ExtractedFact, MissingQuestion, UpdateFactResponse } from "@clinicbrief/types";
 import { Check, ChevronDown, Pencil, RotateCcw, X } from "lucide-react";
 import Link from "next/link";
@@ -70,7 +70,7 @@ export function ReviewClient({ caseId }: { caseId: string }) {
     setFacts(payload.data.facts);
     setQuestions(payload.data.questions);
     setSource(payload.data.source);
-    trackEvent(Events.ExtractionCompleted, {
+    window.pendo?.track?.(Events.ExtractionCompleted, {
       source: payload.data.source,
       factCount: payload.data.facts.length,
       questionCount: payload.data.questions.length
@@ -341,10 +341,10 @@ function ReviewStat({ label, value, tone }: { label: string; value: number; tone
 
 function trackReviewEvent(userStatus: ExtractedFact["userStatus"], category: ExtractedFact["category"]) {
   if (userStatus === "CONFIRMED") {
-    trackEvent(Events.FactConfirmed, { category });
+    window.pendo?.track?.(Events.FactConfirmed, { category });
   }
 
   if (userStatus === "EDITED") {
-    trackEvent(Events.FactEdited, { category });
+    window.pendo?.track?.(Events.FactEdited, { category });
   }
 }

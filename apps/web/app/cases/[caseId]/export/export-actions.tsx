@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Clipboard, Download, FileDown, Printer } from "lucide-react";
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events } from "@clinicbrief/events";
 import type { ExportBundle } from "@clinicbrief/exports";
 import type { BriefType, CaseMode } from "@clinicbrief/types";
 
@@ -41,7 +41,7 @@ export function ExportActions({
       anchor.download = bundle.pdfFileName;
       anchor.click();
       URL.revokeObjectURL(url);
-      trackEvent(Events.PdfExported, { mode, briefType, sourceCount });
+      window.pendo?.track?.(Events.PdfExported, { mode, briefType, sourceCount });
       setStatus("PDF download started.");
       return;
     }
@@ -66,7 +66,7 @@ export function ExportActions({
   }
 
   function printPdfFallback() {
-    trackEvent(Events.PdfExported, { mode, briefType, sourceCount });
+    window.pendo?.track?.(Events.PdfExported, { mode, briefType, sourceCount });
     setStatus("Opening print dialog. Choose Save as PDF for a PDF fallback.");
     window.print();
   }

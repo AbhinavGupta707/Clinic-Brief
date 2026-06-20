@@ -26,6 +26,12 @@ export function PatternReviewPanel({ caseId, initialPatternCards }: { caseId: st
 
       setCards(payload.data.patternCards);
       setStatus(payload.data.patternCards.length > 0 ? "Pattern cards are ready for review." : "No reviewed source-backed patterns are available yet.");
+      if (payload.data.patternCards.length > 0) {
+        window.pendo?.track?.("pattern_cards_generated", {
+          patternCardCount: payload.data.patternCards.length,
+          caseId
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -59,6 +65,10 @@ export function PatternReviewPanel({ caseId, initialPatternCards }: { caseId: st
     const updatedCard = payload.data.patternCard;
     setCards((current) => current.map((item) => (item.id === card.id ? updatedCard : item)));
     setStatus("Pattern card review saved.");
+    window.pendo?.track?.("pattern_card_reviewed", {
+      userStatus,
+      safetyLabel: card.safetyLabel
+    });
   }
 
   function startEdit(card: PatternCard) {

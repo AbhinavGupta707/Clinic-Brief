@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events } from "@clinicbrief/events";
 import type { BriefType, CaseMode } from "@clinicbrief/types";
 
 export function BriefEventTracker({
@@ -16,7 +16,7 @@ export function BriefEventTracker({
   sourceCount: number;
 }) {
   useEffect(() => {
-    trackEvent(Events.BriefGenerated, { mode, briefType, factCount, sourceCount });
+    window.pendo?.track?.(Events.BriefGenerated, { mode, briefType, factCount, sourceCount });
   }, [briefType, factCount, mode, sourceCount]);
 
   return null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Square, Volume2 } from "lucide-react";
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events } from "@clinicbrief/events";
 import type { BriefType, CaseMode } from "@clinicbrief/types";
 import { useBrowserTextToSpeech } from "../../../../lib/client/speech";
 
@@ -15,7 +15,7 @@ export function BriefReadbackControls({ briefType, mode, text }: { briefType: Br
     }
 
     if (startSpeaking(text)) {
-      trackEvent(Events.ReadbackStarted, { mode, briefType });
+      window.pendo?.track?.(Events.ReadbackStarted, { mode, briefType });
     }
   }
 

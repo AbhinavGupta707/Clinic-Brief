@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Mic, Send, ShieldAlert } from "lucide-react";
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events } from "@clinicbrief/events";
 import type { ApiResponse, BriefType, MissingQuestion, RehearsalMessageResponse, RehearsalSession } from "@clinicbrief/types";
 import { useBrowserSpeechToText } from "../../../../lib/client/speech";
 
@@ -43,7 +43,7 @@ export function RehearsalClient({
   const answeredCount = useMemo(() => countAnsweredQuestions(messages), [messages]);
 
   useEffect(() => {
-    trackEvent(Events.RehearsalStarted, { mode: "PREOP", briefType, questionCount: questions.length });
+    window.pendo?.track?.(Events.RehearsalStarted, { mode: "PREOP", briefType, questionCount: questions.length });
     void startSession();
   }, [briefType, questions.length]);
 
@@ -86,7 +86,7 @@ export function RehearsalClient({
     }
 
     setDraft("");
-    trackEvent(Events.RehearsalMessageSent, {
+    window.pendo?.track?.(Events.RehearsalMessageSent, {
       mode: "PREOP",
       briefType,
       questionCount: questions.length,

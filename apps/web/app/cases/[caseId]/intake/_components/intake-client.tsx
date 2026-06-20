@@ -1,6 +1,6 @@
 "use client";
 
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events } from "@clinicbrief/events";
 import {
   BROWSER_SPEECH_PRIVACY_NOTICE,
   type AddDocumentResponse,
@@ -207,7 +207,7 @@ export function IntakeClient({ caseId }: { caseId: string }) {
       }
 
       const added = payload.data;
-      trackEvent(added.document.type === "TEXT_NOTE" || added.document.type === "VOICE_TRANSCRIPT" ? Events.TextNoteAdded : Events.DocumentUploaded, {
+      window.pendo?.track?.(added.document.type === "TEXT_NOTE" || added.document.type === "VOICE_TRANSCRIPT" ? Events.TextNoteAdded : Events.DocumentUploaded, {
         documentCount: sourcePreviews.length + 1
       });
       setSourcePreviews((current) => [added.sourcePreview, ...current]);
@@ -229,7 +229,7 @@ export function IntakeClient({ caseId }: { caseId: string }) {
 
     setIsExtracting(true);
     setStatus(null);
-    trackEvent(Events.ExtractionStarted, { sourceCount: sourcePreviews.length });
+    window.pendo?.track?.(Events.ExtractionStarted, { sourceCount: sourcePreviews.length });
 
     try {
       const response = await fetchWithTimeout(
@@ -253,7 +253,7 @@ export function IntakeClient({ caseId }: { caseId: string }) {
         return;
       }
 
-      trackEvent(Events.ExtractionCompleted, {
+      window.pendo?.track?.(Events.ExtractionCompleted, {
         factCount: payload.data.facts.length,
         questionCount: payload.data.questions.length
       });

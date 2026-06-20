@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events } from "@clinicbrief/events";
 
 type DeleteReceipt = {
   status: "DELETED";
@@ -37,7 +37,7 @@ export function DeleteCasePanel({ caseId }: { caseId: string }) {
 
     setReceipt(body.data);
     setIsDeleting(false);
-    trackEvent(Events.CaseDeleted, {
+    window.pendo?.track?.(Events.CaseDeleted, {
       mode: "PREOP",
       deletedRecordCount: body.data.recordsMarkedDeleted,
       deletedFileCount: body.data.filesRemoved
