@@ -48,6 +48,7 @@ const safetyCopy =
   "ClinicBrief organizes information you provide so you can prepare for appointments. It does not diagnose, recommend treatment, or replace medical advice. Review everything before sharing it with a clinician.";
 
 const steps = ["Welcome", "About you", "Appointment type", "Guided conversation", "Optional documents", "Review key points", "Outcome hub"] as const;
+const maxGuidedQuestions = 5;
 
 const emptyProfile: GuidedProfile = {
   firstName: "",
@@ -62,10 +63,10 @@ const emptyProfile: GuidedProfile = {
 const demoProfile: GuidedProfile = {
   firstName: "Alex",
   preparingFor: "self",
-  age: "Adult",
+  age: "68",
   gender: "Not specified",
   aboutYou: "Synthetic pre-op preparation case for a planned procedure.",
-  simpleLanguage: true,
+  simpleLanguage: false,
   largerText: false
 };
 
@@ -126,12 +127,31 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
     isGuidedDemo
   });
   const textSizeClass = profile.largerText ? "text-lg" : "text-base";
+  const currentQuestionNumber = Math.min(answers.length + 1, maxGuidedQuestions);
 
   useEffect(() => {
-    if (!question && stepIndex >= 3 && !isGuidedDemo) {
+    if (!question && stepIndex === 3 && answers.length === 0 && !isQuestionLoading && !isGuidedDemo) {
       void loadNextQuestion("");
     }
-  }, [question, stepIndex, isGuidedDemo]);
+  }, [answers.length, question, stepIndex, isQuestionLoading, isGuidedDemo]);
+
+  useEffect(() => {
+    setProfile(isGuidedDemo ? demoProfile : emptyProfile);
+    setAppointmentType(isGuidedDemo ? "preop" : "upcoming");
+    setConsent(isGuidedDemo);
+    setQuestion(isGuidedDemo ? demoAnswers[0]?.question ?? "" : "");
+    setCurrentAnswer("");
+    setAnswers(isGuidedDemo ? demoAnswers : []);
+    setConversationComplete(isGuidedDemo);
+    setPastedDocumentText("");
+    setSelectedFile(null);
+    setManualFallbackText("");
+    setSkipDocuments(isGuidedDemo);
+    setStatus(isGuidedDemo ? "Synthetic demo: this flow is prefilled and opens the built-in sample pre-op review, not your personal data." : null);
+    setError(null);
+    setCreatedCaseId(null);
+    setProfileDraft("");
+  }, [isGuidedDemo]);
 
   function updateProfile(next: Partial<GuidedProfile>) {
     setProfile((current) => ({ ...current, ...next }));
@@ -191,6 +211,12 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
     setCurrentAnswer("");
     setStatus("Answer saved as reviewed conversation text. Audio is not stored.");
     setQuestion("");
+
+    if (nextAnswers.length >= maxGuidedQuestions) {
+      setConversationComplete(true);
+      setStatus("You have answered the guided questions. Continue to add documents or skip that step.");
+      return;
+    }
 
     await loadNextQuestion(answer, nextAnswers);
   }
@@ -253,6 +279,12 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
     if (!profile.firstName.trim()) {
       setError("Add a first name before creating the appointment pack.");
+      setStepIndex(1);
+      return;
+    }
+
+    if (!profile.age.trim()) {
+      setError("Add an age before creating the appointment pack.");
       setStepIndex(1);
       return;
     }
@@ -381,7 +413,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
   }
 
   return (
-    <form onSubmit={createAndAnalyzeCase} className={`mx-auto grid w-full max-w-[31rem] gap-4 rounded-[1.75rem] bg-[#F8F1E7] p-4 text-[#3D2F26] shadow-[0_24px_70px_rgba(61,47,38,0.16)] sm:p-5 ${profile.largerText ? "text-lg" : ""}`}>
+    <form onSubmit={createAndAnalyzeCase} className={`mx-auto grid w-full max-w-[31rem] gap-3 rounded-[1.75rem] bg-[#F8F1E7] p-4 text-[#3D2F26] shadow-[0_24px_70px_rgba(61,47,38,0.16)] sm:p-5 lg:max-w-[44rem] ${profile.largerText ? "text-lg" : ""}`}>
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-extrabold uppercase tracking-[0.08em] text-[#8A7A6E]">Step {stepIndex + 1} of {steps.length}</span>
@@ -401,14 +433,14 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       ) : null}
       {error ? <p className="rounded-2xl border border-[#E8956D] bg-[#FFF6EF] p-4 text-sm font-semibold leading-6 text-[#C8553D]">{error}</p> : null}
 
-      <section className="grid gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_8px_24px_rgba(141,122,110,0.12)]">
+      <section className="grid gap-4 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-4 shadow-[0_8px_24px_rgba(141,122,110,0.12)] sm:p-5 lg:p-4">
         {stepIndex === 0 ? (
-          <div className="grid min-h-[30rem] content-center gap-6">
+          <div className="grid min-h-[30rem] content-center gap-5 lg:min-h-[21rem]">
             <div className="grid gap-4 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F6DFD2] text-[#C8553D]">
                 <ClipboardCheck aria-hidden className="h-6 w-6" />
               </div>
-              <h3 className="text-4xl font-semibold leading-tight text-[#3D2F26]">Tell it once. Bring it clearly.</h3>
+              <h3 className="text-4xl font-semibold leading-tight text-[#3D2F26] lg:text-5xl">Tell it once. Bring it clearly.</h3>
               <p className="text-base font-medium leading-7 text-[#8A7A6E]">
                 ClinicBrief will ask a few calm questions, organize your notes, and let you review everything before it becomes an appointment pack.
               </p>
@@ -447,7 +479,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
               {profileSpeech.error ? <p className="rounded-2xl border border-[#E8956D] bg-[#FFF6EF] p-3 text-sm font-semibold text-[#C8553D]">{profileSpeech.error}</p> : null}
               <label className="grid gap-2 text-sm font-extrabold text-[#3D2F26]">
                 Spoken or typed intro
-                <textarea className={`min-h-24 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 ${textSizeClass} leading-7 text-[#3D2F26] placeholder:text-[#A89788] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => setProfileDraft(event.target.value)} placeholder="Example: My name is Alex. I am 68, male, preparing for myself, and I prefer simple language." value={profileDraft} />
+                <textarea className={`min-h-24 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 ${textSizeClass} leading-7 text-[#3D2F26] placeholder:text-[#A89788] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => setProfileDraft(event.target.value)} placeholder="Example: My name is Alex. I am 52, male, and I am preparing for myself." value={profileDraft} />
               </label>
               <p className="text-sm font-medium leading-6 text-[#8A7A6E]">{profileSpeech.capability === "unsupported" ? "Speech recognition is not available in this browser. Typed autofill still works." : "Audio is not stored. Only the reviewed words in this box are sent for autofill."}</p>
             </div>
@@ -483,19 +515,6 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
                 ))}
               </div>
             </fieldset>
-            <fieldset className="grid gap-3">
-              <legend className="text-sm font-extrabold text-[#3D2F26]">Preferences</legend>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex min-h-12 items-center gap-3 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 font-extrabold text-[#5C4A3E]">
-                  <input checked={profile.simpleLanguage} className="h-5 w-5 accent-[#C8553D]" onChange={(event) => updateProfile({ simpleLanguage: event.target.checked })} type="checkbox" />
-                  Simple language
-                </label>
-                <label className="flex min-h-12 items-center gap-3 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 font-extrabold text-[#5C4A3E]">
-                  <input checked={profile.largerText} className="h-5 w-5 accent-[#C8553D]" onChange={(event) => updateProfile({ largerText: event.target.checked })} type="checkbox" />
-                  Larger text
-                </label>
-              </div>
-            </fieldset>
           </div>
         ) : null}
 
@@ -526,8 +545,11 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
         {stepIndex === 3 ? (
           <div className="grid gap-5">
             <div className="grid gap-2 rounded-[1.25rem] bg-[#F8F1E7] p-4">
-              <span className="w-fit rounded-full bg-[#F6DFD2] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">Quick question</span>
-              <h3 className="text-2xl font-semibold leading-snug text-[#3D2F26]">{question || "What would you like ClinicBrief to organize for this appointment?"}</h3>
+              <div className="flex items-center justify-between gap-3">
+                <span className="w-fit rounded-full bg-[#F6DFD2] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">Quick question</span>
+                <span className="rounded-full bg-[#FFFDF8] px-3 py-1 text-xs font-extrabold text-[#8A7A6E]">Question {currentQuestionNumber} of {maxGuidedQuestions}</span>
+              </div>
+              <h3 className="text-2xl font-semibold leading-snug text-[#3D2F26]">{isQuestionLoading || (!question && answers.length === 0) ? "Preparing your question..." : question || "Preparing your next question..."}</h3>
               {isQuestionLoading ? <p className="text-sm font-semibold text-[#8A7A6E]">Preparing the next safe question...</p> : null}
             </div>
             <div className="grid gap-3 rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-3">

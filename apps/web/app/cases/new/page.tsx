@@ -6,7 +6,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="min-h-screen bg-[#F8F1E7] text-[#3D2F26]">
-      <div className="mx-auto grid w-[min(100%-2rem,68rem)] gap-8 py-6 sm:py-8">
+      <div className="mx-auto grid w-[min(100%-2rem,72rem)] gap-5 py-4 sm:py-6 lg:min-h-screen lg:grid-rows-[auto_auto_1fr] lg:gap-5">
         <nav aria-label="Primary" className="flex min-h-11 items-center justify-between">
           <Link className="rounded-full px-3 py-2 text-lg font-extrabold text-[#3D2F26] hover:bg-[#FFFDF8]" href="/">
             ClinicBrief
@@ -21,11 +21,11 @@ export default async function NewCasePage({ searchParams }: { searchParams: Prom
           </div>
         </nav>
 
-        <section className="mx-auto grid w-full max-w-[38rem] gap-5 text-center">
+        <section className="mx-auto grid w-full max-w-[42rem] gap-3 text-center">
           <p className="text-sm font-extrabold uppercase tracking-[0.12em] text-[#C8553D]">
             Guided appointment prep
           </p>
-          <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">Create your appointment pack</h1>
+          <h1 className="text-4xl font-semibold leading-tight sm:text-5xl lg:text-[3.25rem]">Create your appointment pack</h1>
           <p className="mx-auto max-w-[32rem] text-base font-medium leading-7 text-[#8A7A6E]">
             A simple step-by-step flow for speech, notes, documents, review, and a patient-controlled brief.
           </p>

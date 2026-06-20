@@ -20,6 +20,7 @@ export function ReviewClient({ caseId }: { caseId: string }) {
   const confirmedCount = facts.filter((fact) => fact.userStatus === "CONFIRMED" || fact.userStatus === "EDITED").length;
   const rejectedCount = facts.filter((fact) => fact.userStatus === "REJECTED").length;
   const needsReviewCount = facts.length - confirmedCount - rejectedCount;
+  const sourceLabel = source === "fireworks" ? "AI organized from reviewed sources" : isDemoCase ? "Built-in sample documents" : "Local fallback from reviewed sources";
 
   useEffect(() => {
     void loadExtraction();
@@ -147,20 +148,20 @@ export function ReviewClient({ caseId }: { caseId: string }) {
   }
 
   if (isLoading) {
-    return <p className="rounded-md border border-clinic-line bg-white p-5 text-clinic-muted">Loading your review list...</p>;
+    return <p className="mx-auto w-full max-w-[44rem] rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-5 font-medium text-[#8A7A6E]">Loading your review list...</p>;
   }
 
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-4 rounded-md border border-clinic-line bg-white p-4 shadow-soft sm:p-5">
+    <div className="mx-auto grid w-full max-w-[44rem] gap-4">
+      <div className="grid gap-4 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-4 shadow-[0_14px_38px_rgba(61,47,38,0.10)] sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="max-w-2xl">
-            <h2 className="text-2xl font-semibold leading-tight text-clinic-ink">Check what should go in your brief</h2>
-            <p className="mt-2 text-base leading-7 text-clinic-muted">Start with the simple list. Open source details only when you want to check where something came from.</p>
+            <h2 className="text-2xl font-semibold leading-tight text-[#3D2F26]">What should go in the brief?</h2>
+            <p className="mt-2 text-base font-medium leading-7 text-[#8A7A6E]">Tap confirm, edit, or hide. Source details stay tucked away unless you want to check them.</p>
           </div>
-          <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50" onClick={runExtraction} type="button">
+          <button className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-4 py-2 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" onClick={runExtraction} type="button">
             <RotateCcw aria-hidden className="h-5 w-5" />
-            Run extraction
+            Refresh
           </button>
         </div>
         <div className="grid gap-2 text-sm sm:grid-cols-3">
@@ -168,25 +169,25 @@ export function ReviewClient({ caseId }: { caseId: string }) {
           <ReviewStat label="Still to check" value={Math.max(needsReviewCount, 0)} tone="pending" />
           <ReviewStat label="Hidden from brief" value={rejectedCount} tone="hidden" />
         </div>
-        <p className="text-sm leading-6 text-clinic-muted">
-          Source: {source === "fireworks" ? "Fireworks extraction" : "deterministic fallback"}
-          {isDemoCase ? ". This sample is read-only, so review choices stay local to this page." : "."}
+        <p className="text-sm font-medium leading-6 text-[#8A7A6E]">
+          Source: {sourceLabel}
+          {isDemoCase ? ". This is synthetic and read-only; choices stay local to this page." : "."}
         </p>
       </div>
 
-      {status ? <p className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-clinic-warning">{status}</p> : null}
+      {status ? <p className="rounded-2xl border border-[#E8956D] bg-[#FFF6EF] p-4 text-sm font-semibold text-[#C8553D]">{status}</p> : null}
 
       <div className="grid gap-3">
-        {facts.length === 0 ? <p className="rounded-md border border-dashed border-clinic-line bg-white p-5 text-sm text-clinic-muted">No review items yet. Add a note or document, then run extraction.</p> : null}
+        {facts.length === 0 ? <p className="rounded-2xl border border-dashed border-[#E4D8C8] bg-[#FFFDF8] p-5 text-sm font-medium text-[#8A7A6E]">No review items yet. Add a note or document, then run extraction.</p> : null}
         {facts.map((fact) => (
-          <article key={fact.id} className="grid gap-4 rounded-md border border-clinic-line bg-white p-4 shadow-soft sm:p-5">
+          <article key={fact.id} className="grid gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-4 shadow-[0_10px_28px_rgba(61,47,38,0.08)] sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <span className="w-fit rounded-md bg-clinic-surface px-2 py-1 text-xs font-semibold uppercase text-clinic-primary">{fact.category.replace("_", " ")}</span>
+                <span className="w-fit rounded-full bg-[#F6DFD2] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.06em] text-[#C8553D]">{fact.category.replace("_", " ")}</span>
                 {editingFactId === fact.id ? (
-                  <textarea className="mt-3 min-h-24 w-full rounded-md border border-clinic-line p-3 text-base leading-7 text-clinic-ink" onChange={(event) => setDraftText(event.target.value)} value={draftText} />
+                  <textarea className="mt-3 min-h-24 w-full rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 text-base leading-7 text-[#3D2F26] focus:border-[#C8553D] focus:outline-none" onChange={(event) => setDraftText(event.target.value)} value={draftText} />
                 ) : (
-                  <h3 className="mt-3 text-lg font-semibold leading-7 text-clinic-ink">{fact.displayText}</h3>
+                  <h3 className="mt-3 text-xl font-semibold leading-7 text-[#3D2F26]">{fact.displayText}</h3>
                 )}
               </div>
               <span className={statusClassName(fact.userStatus)}>{fact.userStatus.replace("_", " ").toLowerCase()}</span>
@@ -196,7 +197,7 @@ export function ReviewClient({ caseId }: { caseId: string }) {
               {editingFactId === fact.id ? (
                 <>
                   <button
-                    className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#9CAD86] px-4 py-2 font-extrabold text-white hover:bg-[#879974] disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={pendingFactId === fact.id || draftText.trim().length === 0 || draftText.trim() === fact.displayText.trim()}
                     onClick={() => updateFactState(fact, "EDITED", draftText)}
                     type="button"
@@ -205,7 +206,7 @@ export function ReviewClient({ caseId }: { caseId: string }) {
                     {pendingFactId === fact.id ? "Saving edit..." : "Save edit"}
                   </button>
                   <button
-                    className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50"
+                    className="inline-flex min-h-11 items-center rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-4 py-2 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]"
                     disabled={pendingFactId === fact.id}
                     onClick={() => {
                       setEditingFactId(null);
@@ -219,7 +220,7 @@ export function ReviewClient({ caseId }: { caseId: string }) {
               ) : (
                 <>
                   <button
-                    className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#9CAD86] px-4 py-2 font-extrabold text-white hover:bg-[#879974] disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={pendingFactId === fact.id || fact.userStatus === "CONFIRMED"}
                     onClick={() => updateFactState(fact, "CONFIRMED")}
                     type="button"
@@ -227,12 +228,12 @@ export function ReviewClient({ caseId }: { caseId: string }) {
                     <Check aria-hidden className="h-5 w-5" />
                     {fact.userStatus === "CONFIRMED" ? "Confirmed" : "Confirm"}
                   </button>
-                  <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50" onClick={() => startEdit(fact)} type="button">
+                  <button className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-4 py-2 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" onClick={() => startEdit(fact)} type="button">
                     <Pencil aria-hidden className="h-5 w-5" />
                     Edit
                   </button>
                   <button
-                    className="inline-flex min-h-11 items-center gap-2 rounded-md border border-rose-200 bg-white px-4 py-2 font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#F0C8BE] bg-[#FFFDF8] px-4 py-2 font-extrabold text-[#B84B36] hover:bg-[#FFF6EF] disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={pendingFactId === fact.id || fact.userStatus === "REJECTED"}
                     onClick={() => updateFactState(fact, "REJECTED")}
                     type="button"
@@ -243,47 +244,47 @@ export function ReviewClient({ caseId }: { caseId: string }) {
                 </>
               )}
             </div>
-            <details className="group rounded-md bg-clinic-surface px-4 py-3">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-clinic-ink">
+            <details className="group rounded-2xl bg-[#F8F1E7] px-4 py-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-extrabold text-[#3D2F26]">
                 <span>Source details</span>
-                <ChevronDown aria-hidden className="h-4 w-4 transition group-open:rotate-180" />
+                <ChevronDown aria-hidden className="h-4 w-4 text-[#8A7A6E] transition group-open:rotate-180" />
               </summary>
-              <div className="mt-3 grid gap-2 text-sm leading-6 text-clinic-muted sm:grid-cols-3">
+              <div className="mt-3 grid gap-2 text-sm font-medium leading-6 text-[#8A7A6E] sm:grid-cols-3">
                 <p>
-                  <span className="font-semibold text-clinic-ink">Confidence:</span> {Math.round(fact.confidence * 100)}%
+                  <span className="font-extrabold text-[#3D2F26]">Confidence:</span> {Math.round(fact.confidence * 100)}%
                 </p>
                 <p>
-                  <span className="font-semibold text-clinic-ink">Source:</span> {fact.sourceDocId ?? "source pending"}
+                  <span className="font-extrabold text-[#3D2F26]">Source:</span> {fact.sourceDocId ?? "source pending"}
                 </p>
                 <p>
-                  <span className="font-semibold text-clinic-ink">Review:</span> user-controlled
+                  <span className="font-extrabold text-[#3D2F26]">Review:</span> user-controlled
                 </p>
               </div>
-              {fact.sourceQuote ? <p className="mt-3 rounded-md bg-white p-3 text-sm leading-6 text-clinic-muted">Source snippet: {fact.sourceQuote}</p> : null}
+              {fact.sourceQuote ? <p className="mt-3 rounded-2xl bg-[#FFFDF8] p-3 text-sm font-medium leading-6 text-[#8A7A6E]">Source snippet: {fact.sourceQuote}</p> : null}
             </details>
-            {savedFactId === fact.id ? <p className="text-sm font-semibold text-clinic-success">Saved.</p> : null}
+            {savedFactId === fact.id ? <p className="text-sm font-extrabold text-[#758A5F]">Saved.</p> : null}
           </article>
         ))}
       </div>
 
       {questions.length > 0 ? (
-        <details className="group rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+        <details className="group rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-clinic-ink">Questions to consider</h2>
-              <p className="mt-1 text-sm text-clinic-muted">{questions.length} optional prompt{questions.length === 1 ? "" : "s"} found. Open when you want to prepare more context.</p>
+              <h2 className="text-lg font-semibold text-[#3D2F26]">Questions to consider</h2>
+              <p className="mt-1 text-sm font-medium text-[#8A7A6E]">{questions.length} optional prompt{questions.length === 1 ? "" : "s"} found. Open when you want to prepare more context.</p>
             </div>
-            <ChevronDown aria-hidden className="h-5 w-5 text-clinic-muted transition group-open:rotate-180" />
+            <ChevronDown aria-hidden className="h-5 w-5 text-[#8A7A6E] transition group-open:rotate-180" />
           </summary>
           <div className="mt-4 grid gap-3">
             {questions.map((question) => (
-              <article key={question.id} className="rounded-md border border-cyan-100 p-4">
+              <article key={question.id} className="rounded-2xl border border-[#EFE2D2] p-4">
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-md bg-clinic-surface px-2 py-1 text-xs font-semibold uppercase text-clinic-primary">{question.priority}</span>
-                  <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold uppercase text-emerald-700">{question.answerType.replace("_", " ")}</span>
+                  <span className="rounded-full bg-[#F6DFD2] px-2 py-1 text-xs font-extrabold uppercase text-[#C8553D]">{question.priority}</span>
+                  <span className="rounded-full bg-[#EEF3E8] px-2 py-1 text-xs font-extrabold uppercase text-[#758A5F]">{question.answerType.replace("_", " ")}</span>
                 </div>
-                <h3 className="mt-3 font-semibold text-clinic-ink">{question.question}</h3>
-                <p className="mt-1 text-sm leading-6 text-clinic-muted">{question.whyItMattersForAppointment}</p>
+                <h3 className="mt-3 font-semibold text-[#3D2F26]">{question.question}</h3>
+                <p className="mt-1 text-sm font-medium leading-6 text-[#8A7A6E]">{question.whyItMattersForAppointment}</p>
               </article>
             ))}
           </div>
@@ -291,14 +292,14 @@ export function ReviewClient({ caseId }: { caseId: string }) {
       ) : null}
 
       <div className="flex flex-wrap gap-3">
-        <Link className="inline-flex min-h-11 items-center rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white hover:bg-clinic-primaryDark" href={`/cases/${caseId}`}>
-          View dashboard
+        <Link className="inline-flex min-h-11 items-center rounded-full bg-[#C8553D] px-5 py-3 font-extrabold text-white hover:bg-[#B84B36]" href={`/cases/${caseId}`}>
+          Continue
         </Link>
-        <Link className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href={`/cases/${caseId}/brief`}>
-          Generate brief
+        <Link className="inline-flex min-h-11 items-center rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" href={`/cases/${caseId}/brief`}>
+          Brief
         </Link>
-        <Link className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href={`/cases/${caseId}/intake`}>
-          Add more sources
+        <Link className="inline-flex min-h-11 items-center rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" href={`/cases/${caseId}/intake`}>
+          Add more
         </Link>
       </div>
     </div>
@@ -306,34 +307,34 @@ export function ReviewClient({ caseId }: { caseId: string }) {
 }
 
 function statusClassName(status: ExtractedFact["userStatus"]): string {
-  const base = "rounded-md px-3 py-1 text-sm font-semibold";
+  const base = "rounded-full px-3 py-1 text-sm font-extrabold";
 
   if (status === "CONFIRMED") {
-    return `${base} bg-emerald-50 text-emerald-700`;
+    return `${base} bg-[#EEF3E8] text-[#758A5F]`;
   }
 
   if (status === "EDITED") {
-    return `${base} bg-cyan-50 text-clinic-primary`;
+    return `${base} bg-[#F6DFD2] text-[#C8553D]`;
   }
 
   if (status === "REJECTED") {
-    return `${base} bg-rose-50 text-rose-700`;
+    return `${base} bg-[#FFF0EA] text-[#B84B36]`;
   }
 
-  return `${base} bg-clinic-surface text-clinic-muted`;
+  return `${base} bg-[#F2ECE0] text-[#8A7A6E]`;
 }
 
 function ReviewStat({ label, value, tone }: { label: string; value: number; tone: "ready" | "pending" | "hidden" }) {
   const toneClassName = {
-    ready: "border-emerald-100 bg-emerald-50 text-emerald-700",
-    pending: "border-cyan-100 bg-clinic-surface text-clinic-primary",
-    hidden: "border-rose-100 bg-rose-50 text-rose-700"
+    ready: "border-[#D9E5CF] bg-[#EEF3E8] text-[#758A5F]",
+    pending: "border-[#E4D8C8] bg-[#F8F1E7] text-[#8A7A6E]",
+    hidden: "border-[#F0C8BE] bg-[#FFF0EA] text-[#B84B36]"
   }[tone];
 
   return (
-    <div className={`rounded-md border px-4 py-3 ${toneClassName}`}>
+    <div className={`rounded-2xl border px-4 py-3 ${toneClassName}`}>
       <p className="text-2xl font-semibold leading-none">{value}</p>
-      <p className="mt-1 text-sm font-semibold">{label}</p>
+      <p className="mt-1 text-sm font-extrabold">{label}</p>
     </div>
   );
 }

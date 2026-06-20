@@ -43,6 +43,7 @@ export function useBrowserSpeechToText({ onTranscript }: { onTranscript: (text: 
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<ClinicSpeechRecognition | null>(null);
+  const lastTranscriptRef = useRef("");
 
   useEffect(() => {
     setCapability(getBrowserSpeechCapability());
@@ -69,19 +70,28 @@ export function useBrowserSpeechToText({ onTranscript }: { onTranscript: (text: 
       return;
     }
 
+    lastTranscriptRef.current = "";
+
     const recognition = new Recognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.interimResults = false;
     recognition.lang = navigator.language || "en-GB";
     recognition.onresult = (event) => {
-      let transcript = "";
+      const finalParts: string[] = [];
 
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        transcript += event.results[index]?.[0]?.transcript ?? "";
+        const result = event.results[index];
+
+        if (result?.isFinal) {
+          finalParts.push(result[0]?.transcript ?? "");
+        }
       }
 
-      if (transcript.trim()) {
-        onTranscript(transcript.trim());
+      const transcript = finalParts.join(" ").replace(/\s+/g, " ").trim();
+
+      if (transcript && transcript !== lastTranscriptRef.current) {
+        lastTranscriptRef.current = transcript;
+        onTranscript(transcript);
       }
     };
     recognition.onerror = (event) => {
