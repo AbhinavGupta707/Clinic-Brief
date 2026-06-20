@@ -12,8 +12,9 @@ const GuidedProfileDraftSchema = z
   .object({
     firstName: z.string().trim().max(80).optional().default(""),
     preparingFor: z.enum(["self", "someone_else"]).optional().default("self"),
-    ageRange: z.string().trim().max(80).optional().default(""),
-    basicContext: z.string().trim().max(240).optional().default(""),
+    age: z.string().trim().max(40).optional().default(""),
+    gender: z.string().trim().max(80).optional().default(""),
+    aboutYou: z.string().trim().max(240).optional().default(""),
     simpleLanguage: z.boolean().optional().default(false),
     largerText: z.boolean().optional().default(false),
     confidence: z.number().min(0).max(1)
@@ -45,8 +46,9 @@ export async function parseGuidedProfileDraft(transcript: string): Promise<Guide
         fields: {
           firstName: "First name only if clearly stated.",
           preparingFor: "self or someone_else.",
-          ageRange: "Short optional age range or life-stage phrase if clearly stated.",
-          basicContext: "One short non-diagnostic context phrase for the appointment.",
+          age: "Age or age range only if clearly stated.",
+          gender: "Gender only if clearly stated; preserve user wording.",
+          aboutYou: "One short non-diagnostic line about the person, preferences, or access needs.",
           simpleLanguage: "true only if the user asks for simpler wording.",
           largerText: "true only if the user asks for larger text."
         },
@@ -55,7 +57,7 @@ export async function parseGuidedProfileDraft(transcript: string): Promise<Guide
           "No treatment advice.",
           "No medication change advice.",
           "No emergency triage.",
-          "Do not copy long health narratives into basicContext."
+          "Do not copy long health narratives into aboutYou."
         ]
       }),
       schema: GuidedProfileDraftSchema
@@ -65,8 +67,9 @@ export async function parseGuidedProfileDraft(transcript: string): Promise<Guide
       profile: {
         firstName: parsed.firstName,
         preparingFor: parsed.preparingFor,
-        ageRange: parsed.ageRange,
-        basicContext: parsed.basicContext,
+        age: parsed.age,
+        gender: parsed.gender,
+        aboutYou: parsed.aboutYou,
         simpleLanguage: parsed.simpleLanguage,
         largerText: parsed.largerText
       },
@@ -89,8 +92,9 @@ function parseGuidedProfileFallback(transcript: string): GuidedProfileDraft {
     profile: {
       firstName: firstNameMatch?.[1] ?? "",
       preparingFor,
-      ageRange: /\bolder adult\b/i.test(transcript) ? "Older adult" : "",
-      basicContext: transcript.slice(0, 180),
+      age: transcript.match(/\b(?:age|aged|i am|i'm)\s+(\d{1,3})\b/i)?.[1] ?? (/\bolder adult\b/i.test(transcript) ? "Older adult" : ""),
+      gender: transcript.match(/\b(?:gender is|i am a|i'm a)\s+(woman|man|female|male|non-binary|nonbinary)\b/i)?.[1] ?? "",
+      aboutYou: transcript.slice(0, 180),
       simpleLanguage: /\bsimple language|plain english|plain language\b/i.test(transcript),
       largerText: /\blarger text|large text|bigger text\b/i.test(transcript)
     },

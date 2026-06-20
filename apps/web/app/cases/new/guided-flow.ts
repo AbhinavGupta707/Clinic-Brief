@@ -5,8 +5,9 @@ export type AppointmentPrepType = "upcoming" | "chronic" | "symptoms" | "preop" 
 export type GuidedProfile = {
   firstName: string;
   preparingFor: "self" | "someone_else";
-  ageRange: string;
-  basicContext: string;
+  age: string;
+  gender: string;
+  aboutYou: string;
   simpleLanguage: boolean;
   largerText: boolean;
 };
@@ -79,7 +80,9 @@ export function buildGuidedConversationSourceText({
     "Guided appointment-prep conversation",
     `First name: ${profile.firstName.trim() || "not provided"}`,
     `Preparing for: ${profile.preparingFor === "someone_else" ? "someone else" : "self"}`,
-    `Age range or basic context: ${profile.ageRange.trim() || profile.basicContext.trim() || "not provided"}`,
+    `Age: ${profile.age.trim() || "not provided"}`,
+    `Gender: ${profile.gender.trim() || "not provided"}`,
+    `About user: ${profile.aboutYou.trim() || "not provided"}`,
     `Accessibility preference: ${[
       profile.simpleLanguage ? "simple language" : undefined,
       profile.largerText ? "larger text" : undefined

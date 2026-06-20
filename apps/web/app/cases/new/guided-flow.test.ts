@@ -4,8 +4,9 @@ import { buildGuidedConversationSourceText, mapAppointmentTypeToMode, makeGuided
 const profile: GuidedProfile = {
   firstName: "Alex",
   preparingFor: "self",
-  ageRange: "Adult",
-  basicContext: "Preparing for a clinic appointment.",
+  age: "68",
+  gender: "male",
+  aboutYou: "Preparing for a clinic appointment.",
   simpleLanguage: true,
   largerText: false
 };
@@ -29,6 +30,9 @@ describe("guided flow helpers", () => {
     const source = makeGuidedInitialSource(text);
 
     expect(text).toContain("Guided appointment-prep conversation");
+    expect(text).toContain("Age: 68");
+    expect(text).toContain("Gender: male");
+    expect(text).toContain("About user: Preparing for a clinic appointment.");
     expect(text).toContain("Question 1: What are you preparing for?");
     expect(text).toContain("Answer 1: A synthetic pre-op appointment.");
     expect(source).toEqual({

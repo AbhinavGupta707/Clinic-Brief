@@ -52,8 +52,9 @@ const steps = ["Welcome", "About you", "Appointment type", "Guided conversation"
 const emptyProfile: GuidedProfile = {
   firstName: "",
   preparingFor: "self",
-  ageRange: "",
-  basicContext: "",
+  age: "",
+  gender: "",
+  aboutYou: "",
   simpleLanguage: false,
   largerText: false
 };
@@ -61,8 +62,9 @@ const emptyProfile: GuidedProfile = {
 const demoProfile: GuidedProfile = {
   firstName: "Alex",
   preparingFor: "self",
-  ageRange: "Adult",
-  basicContext: "Synthetic pre-op preparation case for a planned procedure.",
+  age: "Adult",
+  gender: "Not specified",
+  aboutYou: "Synthetic pre-op preparation case for a planned procedure.",
   simpleLanguage: true,
   largerText: false
 };
@@ -86,7 +88,6 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
   const [appointmentType, setAppointmentType] = useState<AppointmentPrepType>(isGuidedDemo ? "preop" : "upcoming");
   const [consent, setConsent] = useState(isGuidedDemo);
   const [question, setQuestion] = useState(isGuidedDemo ? demoAnswers[0]?.question ?? "" : "");
-  const [questionSource, setQuestionSource] = useState<GuidedQuestionResponse["source"]>("fixture");
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [answers, setAnswers] = useState<ConversationAnswer[]>(isGuidedDemo ? demoAnswers : []);
   const [conversationComplete, setConversationComplete] = useState(isGuidedDemo);
@@ -162,7 +163,6 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       }
 
       setQuestion(payload.data.question);
-      setQuestionSource(payload.data.source);
       setConversationComplete(Boolean(payload.data.complete));
 
       if (payload.data.safetyRedirect) {
@@ -224,8 +224,9 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       updateProfile({
         ...payload.data.profile,
         firstName: payload.data.profile.firstName || profile.firstName,
-        ageRange: payload.data.profile.ageRange || profile.ageRange,
-        basicContext: payload.data.profile.basicContext || profile.basicContext
+        age: payload.data.profile.age || profile.age,
+        gender: payload.data.profile.gender || profile.gender,
+        aboutYou: payload.data.profile.aboutYou || profile.aboutYou
       });
       setStatus(`Autofilled what ClinicBrief could read clearly. Confidence: ${Math.round(payload.data.confidence * 100)}%. Please review before continuing.`);
     } catch {
@@ -380,129 +381,117 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
   }
 
   return (
-    <form onSubmit={createAndAnalyzeCase} className={`grid gap-5 ${profile.largerText ? "text-lg" : ""}`}>
-      <div className="grid gap-4 rounded-md border border-clinic-line bg-white p-4 shadow-soft sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-clinic-primary">Step {stepIndex + 1} of {steps.length}</p>
-            <h2 className="mt-1 text-2xl font-semibold text-clinic-ink">{steps[stepIndex]}</h2>
-          </div>
-          <span className="rounded-md border border-cyan-100 bg-clinic-surface px-3 py-2 text-sm font-semibold text-clinic-primary">
-            {selectedMode.toLowerCase()} mode
-          </span>
+    <form onSubmit={createAndAnalyzeCase} className={`mx-auto grid w-full max-w-[31rem] gap-4 rounded-[1.75rem] bg-[#F8F1E7] p-4 text-[#3D2F26] shadow-[0_24px_70px_rgba(61,47,38,0.16)] sm:p-5 ${profile.largerText ? "text-lg" : ""}`}>
+      <div className="grid gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-extrabold uppercase tracking-[0.08em] text-[#8A7A6E]">Step {stepIndex + 1} of {steps.length}</span>
+          <span className="rounded-full bg-[#F6DFD2] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.06em] text-[#C8553D]">{steps[stepIndex]}</span>
         </div>
-        <ol className="grid gap-2 sm:grid-cols-7">
+        <div className="flex gap-2" aria-label="Progress">
           {steps.map((step, index) => (
-            <li key={step}>
-              <button
-                className={`min-h-11 w-full rounded-md border px-2 py-2 text-sm font-semibold transition ${
-                  index === stepIndex ? "border-clinic-primary bg-clinic-surface text-clinic-primary" : index < stepIndex ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-clinic-line bg-white text-clinic-muted"
-                }`}
-                disabled={index > stepIndex || isSubmitting}
-                onClick={() => setStepIndex(index)}
-                type="button"
-              >
-                {step}
-              </button>
-            </li>
+            <span key={step} className={`h-2 rounded-full transition-all ${index <= stepIndex ? "w-7 bg-[#C8553D]" : "w-2 bg-[#E6D6C6]"}`} />
           ))}
-        </ol>
+        </div>
       </div>
 
       {status ? (
-        <p className="rounded-md border border-cyan-100 bg-white p-4 text-sm font-medium leading-6 text-clinic-muted" role="status">
+        <p className="rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-4 text-sm font-semibold leading-6 text-[#8A7A6E]" role="status">
           {status}
         </p>
       ) : null}
-      {error ? <p className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm font-medium leading-6 text-clinic-warning">{error}</p> : null}
+      {error ? <p className="rounded-2xl border border-[#E8956D] bg-[#FFF6EF] p-4 text-sm font-semibold leading-6 text-[#C8553D]">{error}</p> : null}
 
-      <section className="grid gap-5 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+      <section className="grid gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_8px_24px_rgba(141,122,110,0.12)]">
         {stepIndex === 0 ? (
-          <div className="grid gap-5">
-            <div className="grid gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-clinic-surface text-clinic-primary">
+          <div className="grid min-h-[30rem] content-center gap-6">
+            <div className="grid gap-4 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F6DFD2] text-[#C8553D]">
                 <ClipboardCheck aria-hidden className="h-6 w-6" />
               </div>
-              <h3 className="text-2xl font-semibold text-clinic-ink">Let’s prepare one appointment pack at a time.</h3>
-              <p className="max-w-3xl text-base leading-7 text-clinic-muted">
-                ClinicBrief will ask a few simple preparation questions, save reviewed answers as source material, optionally add documents, then show key points for you to confirm before any brief or export.
+              <h3 className="text-4xl font-semibold leading-tight text-[#3D2F26]">Tell it once. Bring it clearly.</h3>
+              <p className="text-base font-medium leading-7 text-[#8A7A6E]">
+                ClinicBrief will ask a few calm questions, organize your notes, and let you review everything before it becomes an appointment pack.
               </p>
             </div>
-            <label className="flex gap-3 rounded-md border border-cyan-100 bg-clinic-surface p-4 text-sm leading-6 text-clinic-muted">
-              <input checked={consent} className="mt-1 h-5 w-5 accent-clinic-success" disabled={isGuidedDemo} onChange={(event) => setConsent(event.target.checked)} required type="checkbox" />
+            <label className="flex gap-3 rounded-2xl bg-[#F2ECE0] p-4 text-sm font-semibold leading-6 text-[#5C4A3E]">
+              <input checked={consent} className="mt-1 h-5 w-5 accent-[#C8553D]" disabled={isGuidedDemo} onChange={(event) => setConsent(event.target.checked)} required type="checkbox" />
               <span>I understand this app processes health information I provide. It organizes information for appointment preparation only and does not provide medical advice.</span>
             </label>
-            <p className="rounded-md border border-clinic-line p-4 text-sm leading-6 text-clinic-muted">{safetyCopy}</p>
+            <p className="rounded-2xl border border-[#EFE2D2] p-4 text-sm font-medium leading-6 text-[#8A7A6E]">{safetyCopy}</p>
           </div>
         ) : null}
 
         {stepIndex === 1 ? (
           <div className="grid gap-4">
-            <div className="grid gap-4 rounded-md border border-cyan-100 bg-clinic-surface p-4">
+            <div className="grid gap-4 rounded-[1.25rem] bg-[#F8F1E7] p-4">
               <div className="grid gap-2">
-                <h3 className="text-lg font-semibold text-clinic-ink">Say the basics in one go</h3>
-                <p className="text-sm leading-6 text-clinic-muted">
-                  Optional: say or type something like “My name is Alex, this is for me, I’m an older adult, and I prefer simple language.” ClinicBrief will fill the fields, then you can correct them.
+                <h3 className="text-2xl font-semibold text-[#3D2F26]">A little about you</h3>
+                <p className="text-sm font-medium leading-6 text-[#8A7A6E]">
+                  Say it in one go, or fill the fields yourself. You can correct anything before continuing.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-primary px-4 py-2 font-semibold text-white hover:bg-clinic-primaryDark disabled:opacity-60" disabled={profileSpeech.capability === "unsupported" || profileSpeech.isListening} onClick={profileSpeech.startListening} type="button">
+                <button className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#C8553D] px-4 py-2 font-extrabold text-white shadow-[0_8px_18px_rgba(200,85,61,0.26)] hover:bg-[#B84B36] disabled:opacity-60" disabled={profileSpeech.capability === "unsupported" || profileSpeech.isListening} onClick={profileSpeech.startListening} type="button">
                   <Mic aria-hidden className="h-5 w-5" />
-                  Speak basics
+                  Speak
                 </button>
-                <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50 disabled:opacity-60" disabled={!profileSpeech.isListening} onClick={profileSpeech.stopListening} type="button">
+                <button className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-4 py-2 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0] disabled:opacity-60" disabled={!profileSpeech.isListening} onClick={profileSpeech.stopListening} type="button">
                   <MicOff aria-hidden className="h-5 w-5" />
                   Stop
                 </button>
-                <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60" disabled={isProfileParsing || !profileDraft.trim()} onClick={autofillProfileFromDraft} type="button">
+                <button className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#9CAD86] px-4 py-2 font-extrabold text-white hover:bg-[#879974] disabled:opacity-60" disabled={isProfileParsing || !profileDraft.trim()} onClick={autofillProfileFromDraft} type="button">
                   {isProfileParsing ? <Loader2 aria-hidden className="h-5 w-5 animate-spin" /> : <Sparkles aria-hidden className="h-5 w-5" />}
-                  Autofill fields
+                  Fill fields
                 </button>
               </div>
-              {profileSpeech.error ? <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-clinic-warning">{profileSpeech.error}</p> : null}
-              <label className="grid gap-2 text-sm font-medium text-clinic-ink">
-                Reviewed words for autofill
-                <textarea className={`min-h-28 rounded-md border border-clinic-line bg-white p-3 ${textSizeClass} leading-7 text-clinic-ink`} onChange={(event) => setProfileDraft(event.target.value)} placeholder="Type or edit the basics before autofill." value={profileDraft} />
+              {profileSpeech.error ? <p className="rounded-2xl border border-[#E8956D] bg-[#FFF6EF] p-3 text-sm font-semibold text-[#C8553D]">{profileSpeech.error}</p> : null}
+              <label className="grid gap-2 text-sm font-extrabold text-[#3D2F26]">
+                Spoken or typed intro
+                <textarea className={`min-h-24 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 ${textSizeClass} leading-7 text-[#3D2F26] placeholder:text-[#A89788] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => setProfileDraft(event.target.value)} placeholder="Example: My name is Alex. I am 68, male, preparing for myself, and I prefer simple language." value={profileDraft} />
               </label>
-              <p className="text-sm leading-6 text-clinic-muted">{profileSpeech.capability === "unsupported" ? "Speech recognition is not available in this browser. Typed autofill still works." : "Audio is not stored. Only the reviewed words in this box are sent for autofill."}</p>
+              <p className="text-sm font-medium leading-6 text-[#8A7A6E]">{profileSpeech.capability === "unsupported" ? "Speech recognition is not available in this browser. Typed autofill still works." : "Audio is not stored. Only the reviewed words in this box are sent for autofill."}</p>
             </div>
-            <label className="grid gap-2 text-sm font-medium text-clinic-ink">
+            <label className="grid gap-2 text-sm font-extrabold text-[#3D2F26]">
               First name
-              <input className={`min-h-11 rounded-md border border-clinic-line px-3 ${textSizeClass} text-clinic-ink`} onChange={(event) => updateProfile({ firstName: event.target.value })} placeholder="First name" value={profile.firstName} />
+              <input className={`min-h-12 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] px-4 ${textSizeClass} text-[#3D2F26] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => updateProfile({ firstName: event.target.value })} placeholder="First name" value={profile.firstName} />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-2 text-sm font-extrabold text-[#3D2F26]">
+                Age
+                <input className={`min-h-12 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] px-4 ${textSizeClass} text-[#3D2F26] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => updateProfile({ age: event.target.value })} placeholder="Example: 68" value={profile.age} />
+              </label>
+              <label className="grid gap-2 text-sm font-extrabold text-[#3D2F26]">
+                Gender
+                <input className={`min-h-12 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] px-4 ${textSizeClass} text-[#3D2F26] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => updateProfile({ gender: event.target.value })} placeholder="Optional" value={profile.gender} />
+              </label>
+            </div>
+            <label className="grid gap-2 text-sm font-extrabold text-[#3D2F26]">
+              About you
+              <textarea className={`min-h-24 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 ${textSizeClass} leading-7 text-[#3D2F26] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => updateProfile({ aboutYou: event.target.value })} placeholder="Anything useful for the appointment, access needs, or how you prefer information." value={profile.aboutYou} />
             </label>
             <fieldset className="grid gap-3">
-              <legend className="text-sm font-semibold text-clinic-ink">Who are you preparing for?</legend>
+              <legend className="text-sm font-extrabold text-[#3D2F26]">Who are you preparing for?</legend>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
                   ["self", "Myself"],
                   ["someone_else", "Someone else"]
                 ].map(([value, label]) => (
-                  <label key={value} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-clinic-line p-3 font-semibold text-clinic-ink">
-                    <input checked={profile.preparingFor === value} className="h-5 w-5 accent-clinic-success" onChange={() => updateProfile({ preparingFor: value as GuidedProfile["preparingFor"] })} type="radio" />
+                  <label key={value} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 font-extrabold ${profile.preparingFor === value ? "border-[#C8553D] bg-[#FBE6DE] text-[#C8553D]" : "border-[#EFE2D2] bg-[#FFFDF8] text-[#5C4A3E]"}`}>
+                    <input checked={profile.preparingFor === value} className="h-5 w-5 accent-[#C8553D]" onChange={() => updateProfile({ preparingFor: value as GuidedProfile["preparingFor"] })} type="radio" />
                     {label}
                   </label>
                 ))}
               </div>
             </fieldset>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 text-sm font-medium text-clinic-ink">
-                Optional age range
-                <input className={`min-h-11 rounded-md border border-clinic-line px-3 ${textSizeClass} text-clinic-ink`} onChange={(event) => updateProfile({ ageRange: event.target.value })} placeholder="Adult, older adult, child, teenager..." value={profile.ageRange} />
-              </label>
-              <label className="grid gap-2 text-sm font-medium text-clinic-ink">
-                Optional basic context
-                <input className={`min-h-11 rounded-md border border-clinic-line px-3 ${textSizeClass} text-clinic-ink`} onChange={(event) => updateProfile({ basicContext: event.target.value })} placeholder="Anything that helps frame the appointment" value={profile.basicContext} />
-              </label>
-            </div>
             <fieldset className="grid gap-3">
-              <legend className="text-sm font-semibold text-clinic-ink">Accessibility preferences</legend>
+              <legend className="text-sm font-extrabold text-[#3D2F26]">Preferences</legend>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex min-h-11 items-center gap-3 rounded-md border border-clinic-line p-3 font-semibold text-clinic-ink">
-                  <input checked={profile.simpleLanguage} className="h-5 w-5 accent-clinic-success" onChange={(event) => updateProfile({ simpleLanguage: event.target.checked })} type="checkbox" />
+                <label className="flex min-h-12 items-center gap-3 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 font-extrabold text-[#5C4A3E]">
+                  <input checked={profile.simpleLanguage} className="h-5 w-5 accent-[#C8553D]" onChange={(event) => updateProfile({ simpleLanguage: event.target.checked })} type="checkbox" />
                   Simple language
                 </label>
-                <label className="flex min-h-11 items-center gap-3 rounded-md border border-clinic-line p-3 font-semibold text-clinic-ink">
-                  <input checked={profile.largerText} className="h-5 w-5 accent-clinic-success" onChange={(event) => updateProfile({ largerText: event.target.checked })} type="checkbox" />
+                <label className="flex min-h-12 items-center gap-3 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 font-extrabold text-[#5C4A3E]">
+                  <input checked={profile.largerText} className="h-5 w-5 accent-[#C8553D]" onChange={(event) => updateProfile({ largerText: event.target.checked })} type="checkbox" />
                   Larger text
                 </label>
               </div>
@@ -512,20 +501,22 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
         {stepIndex === 2 ? (
           <div className="grid gap-4">
-            <p className="text-base leading-7 text-clinic-muted">Choose the closest preparation shape. ClinicBrief maps this to the existing case modes so older APIs and routes keep working.</p>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <h3 className="text-2xl font-semibold text-[#3D2F26]">What are you getting ready for?</h3>
+              <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">Pick the closest option. You can still explain the details in your own words next.</p>
+            </div>
+            <div className="grid gap-3">
               {appointmentTypeOptions.map((option) => (
                 <button
-                  className={`grid min-h-32 content-start gap-2 rounded-md border p-4 text-left transition ${
-                    appointmentType === option.id ? "border-clinic-primary bg-clinic-surface text-clinic-primary" : "border-clinic-line bg-white text-clinic-ink hover:bg-cyan-50"
+                  className={`grid min-h-24 content-start gap-2 rounded-2xl border-2 p-4 text-left transition ${
+                    appointmentType === option.id ? "border-[#C8553D] bg-[#FBE6DE] text-[#C8553D]" : "border-[#EFE2D2] bg-[#FFFDF8] text-[#3D2F26] hover:bg-[#F8F1E7]"
                   }`}
                   key={option.id}
                   onClick={() => setAppointmentType(option.id)}
                   type="button"
                 >
-                  <span className="text-lg font-semibold">{option.label}</span>
-                  <span className="text-sm leading-6 text-clinic-muted">{option.description}</span>
-                  <span className="mt-auto w-fit rounded-md bg-white px-2 py-1 text-xs font-semibold uppercase text-clinic-primary">{mapAppointmentTypeToMode(option.id, profile.preparingFor)} mode</span>
+                  <span className="text-lg font-extrabold">{option.label}</span>
+                  <span className="text-sm font-medium leading-6 text-[#8A7A6E]">{option.description}</span>
                 </button>
               ))}
             </div>
@@ -534,45 +525,45 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
         {stepIndex === 3 ? (
           <div className="grid gap-5">
-            <div className="rounded-md border border-cyan-100 bg-clinic-surface p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-lg font-semibold text-clinic-ink">{question || "What would you like ClinicBrief to organize for this appointment?"}</h3>
-                <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold uppercase text-clinic-primary">{questionSource === "fireworks" ? "AI question" : "Fallback question"}</span>
+            <div className="grid gap-2 rounded-[1.25rem] bg-[#F8F1E7] p-4">
+              <span className="w-fit rounded-full bg-[#F6DFD2] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">Quick question</span>
+              <h3 className="text-2xl font-semibold leading-snug text-[#3D2F26]">{question || "What would you like ClinicBrief to organize for this appointment?"}</h3>
+              {isQuestionLoading ? <p className="text-sm font-semibold text-[#8A7A6E]">Preparing the next safe question...</p> : null}
+            </div>
+            <div className="grid gap-3 rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <button className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#C8553D] px-4 py-2 font-extrabold text-white shadow-[0_8px_18px_rgba(200,85,61,0.26)] hover:bg-[#B84B36] disabled:opacity-60" disabled={speech.capability === "unsupported" || speech.isListening} onClick={speech.startListening} type="button">
+                  <Mic aria-hidden className="h-5 w-5" />
+                  Speak
+                </button>
+                <button className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-4 py-2 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0] disabled:opacity-60" disabled={!speech.isListening} onClick={speech.stopListening} type="button">
+                  <MicOff aria-hidden className="h-5 w-5" />
+                  Stop
+                </button>
               </div>
-              {isQuestionLoading ? <p className="mt-2 text-sm text-clinic-muted">Preparing the next safe question...</p> : null}
+              <p className="text-sm font-medium leading-6 text-[#8A7A6E]">{speech.capability === "unsupported" ? "Speech recognition is not available in this browser. Typed answers still work." : "Audio is not stored. Only reviewed text can be saved."}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-3 rounded-md border border-clinic-line p-3">
-              <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-primary px-4 py-2 font-semibold text-white hover:bg-clinic-primaryDark disabled:opacity-60" disabled={speech.capability === "unsupported" || speech.isListening} onClick={speech.startListening} type="button">
-                <Mic aria-hidden className="h-5 w-5" />
-                Speak answer
-              </button>
-              <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50 disabled:opacity-60" disabled={!speech.isListening} onClick={speech.stopListening} type="button">
-                <MicOff aria-hidden className="h-5 w-5" />
-                Stop
-              </button>
-              <p className="text-sm leading-6 text-clinic-muted">{speech.capability === "unsupported" ? "Speech recognition is not available in this browser. Typed answers still work." : "Browser speech-to-text is optional. Audio is not stored; only reviewed text can be saved."}</p>
-            </div>
-            {speech.error ? <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-clinic-warning">{speech.error}</p> : null}
-            <label className="grid gap-2 text-sm font-medium text-clinic-ink">
+            {speech.error ? <p className="rounded-2xl border border-[#E8956D] bg-[#FFF6EF] p-3 text-sm font-semibold text-[#C8553D]">{speech.error}</p> : null}
+            <label className="grid gap-2 text-sm font-extrabold text-[#3D2F26]">
               Your answer
-              <textarea className={`min-h-40 rounded-md border border-clinic-line p-3 ${textSizeClass} leading-7 text-clinic-ink`} onChange={(event) => setCurrentAnswer(event.target.value)} placeholder={profile.simpleLanguage ? "Use your own words. Short answers are fine." : "Type or edit the answer you want saved as reviewed source material."} value={currentAnswer} />
+              <textarea className={`min-h-40 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 ${textSizeClass} leading-7 text-[#3D2F26] placeholder:text-[#A89788] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => setCurrentAnswer(event.target.value)} placeholder={profile.simpleLanguage ? "Use your own words. Short answers are fine." : "Type or edit the answer you want saved."} value={currentAnswer} />
             </label>
             <div className="flex flex-wrap gap-3">
-              <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60" disabled={isQuestionLoading || !currentAnswer.trim()} onClick={saveConversationAnswer} type="button">
+              <button className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#9CAD86] px-5 py-3 font-extrabold text-white hover:bg-[#879974] disabled:opacity-60" disabled={isQuestionLoading || !currentAnswer.trim()} onClick={saveConversationAnswer} type="button">
                 <CheckCircle2 aria-hidden className="h-5 w-5" />
                 Save answer
               </button>
-              <button className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" onClick={() => setConversationComplete(true)} type="button">
+              <button className="inline-flex min-h-11 items-center rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" onClick={() => setConversationComplete(true)} type="button">
                 Finish conversation
               </button>
             </div>
             {answers.length > 0 ? (
-              <details className="group rounded-md border border-clinic-line p-4">
-                <summary className="cursor-pointer list-none font-semibold text-clinic-ink">{answers.length} saved answer{answers.length === 1 ? "" : "s"}</summary>
+              <details className="group rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-4">
+                <summary className="cursor-pointer list-none font-extrabold text-[#3D2F26]">{answers.length} saved answer{answers.length === 1 ? "" : "s"}</summary>
                 <ol className="mt-3 grid gap-3">
                   {answers.map((answer, index) => (
-                    <li className="rounded-md bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted" key={`${answer.question}-${index}`}>
-                      <span className="font-semibold text-clinic-ink">{answer.question}</span>
+                    <li className="rounded-2xl bg-[#F8F1E7] p-3 text-sm font-medium leading-6 text-[#8A7A6E]" key={`${answer.question}-${index}`}>
+                      <span className="font-extrabold text-[#3D2F26]">{answer.question}</span>
                       <br />
                       {answer.answer}
                     </li>
@@ -585,19 +576,25 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
         {stepIndex === 4 ? (
           <div className="grid gap-5">
-            <div className="grid gap-3 rounded-md border border-clinic-line p-4">
+            <div className="grid gap-4 rounded-[1.25rem] border-2 border-dashed border-[#E4D8C8] bg-[#F8F1E7] p-5">
               <div className="flex items-start gap-3">
-                <FileText aria-hidden className="mt-1 h-5 w-5 text-clinic-primary" />
+                <FileText aria-hidden className="mt-1 h-5 w-5 text-[#C8553D]" />
                 <div>
-                  <h3 className="font-semibold text-clinic-ink">One optional source area</h3>
-                  <p className="mt-1 text-sm leading-6 text-clinic-muted">Paste text, choose a PDF/image, or skip for now. Manual fallback text helps when a PDF or image cannot be read.</p>
+                  <h3 className="text-xl font-semibold text-[#3D2F26]">Add documents if you have them</h3>
+                  <p className="mt-1 text-sm font-medium leading-6 text-[#8A7A6E]">Drop in a PDF/image, paste notes, or skip. You can still create a pack from the conversation.</p>
                 </div>
               </div>
-              <textarea className={`min-h-36 rounded-md border border-clinic-line p-3 ${textSizeClass} leading-7 text-clinic-ink`} onChange={(event) => setPastedDocumentText(event.target.value)} placeholder="Paste copied letter text, portal notes, diary entries, or document text here." value={pastedDocumentText} />
-              <input accept="application/pdf,image/*" className="min-h-11 rounded-md border border-clinic-line bg-white px-3 py-2 text-sm text-clinic-muted" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} type="file" />
-              <textarea className="min-h-24 rounded-md border border-clinic-line p-3 text-base leading-7 text-clinic-ink" onChange={(event) => setManualFallbackText(event.target.value)} placeholder="Optional manual fallback if the PDF or image text cannot be extracted." value={manualFallbackText} />
+              <input accept="application/pdf,image/*" className="min-h-12 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] px-3 py-2 text-sm font-semibold text-[#5C4A3E]" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} type="file" />
+              <details className="rounded-2xl bg-[#FFFDF8] p-3">
+                <summary className="cursor-pointer list-none font-extrabold text-[#3D2F26]">Paste text instead</summary>
+                <textarea className={`mt-3 min-h-32 w-full rounded-2xl border-2 border-[#EFE2D2] p-3 ${textSizeClass} leading-7 text-[#3D2F26] focus:border-[#C8553D] focus:outline-none`} onChange={(event) => setPastedDocumentText(event.target.value)} placeholder="Paste copied letter text, portal notes, diary entries, or document text here." value={pastedDocumentText} />
+              </details>
+              <details className="rounded-2xl bg-[#FFFDF8] p-3">
+                <summary className="cursor-pointer list-none font-extrabold text-[#3D2F26]">Manual fallback for scanned files</summary>
+                <textarea className="mt-3 min-h-24 w-full rounded-2xl border-2 border-[#EFE2D2] p-3 text-base leading-7 text-[#3D2F26] focus:border-[#C8553D] focus:outline-none" onChange={(event) => setManualFallbackText(event.target.value)} placeholder="Optional text if the PDF or image cannot be extracted." value={manualFallbackText} />
+              </details>
             </div>
-            <button className="inline-flex min-h-11 w-fit items-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" onClick={() => setSkipDocuments(true)} type="button">
+            <button className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" onClick={() => setSkipDocuments(true)} type="button">
               <Upload aria-hidden className="h-5 w-5" />
               Skip for now
             </button>
@@ -606,15 +603,15 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
         {stepIndex === 5 ? (
           <div className="grid gap-5">
-            <div className="grid gap-3 rounded-md border border-cyan-100 bg-clinic-surface p-4 sm:grid-cols-3">
+            <div className="grid gap-3 rounded-[1.25rem] bg-[#F8F1E7] p-4">
               <SummaryTile icon={<MessageCircle aria-hidden className="h-5 w-5" />} label="Conversation answers" value={answers.length.toString()} />
               <SummaryTile icon={<ShieldCheck aria-hidden className="h-5 w-5" />} label="Audio stored" value="No" />
               <SummaryTile icon={<FileText aria-hidden className="h-5 w-5" />} label="Optional documents" value={hasDocumentInput ? "Added" : "Skipped"} />
             </div>
-            <p className="text-base leading-7 text-clinic-muted">
+            <p className="text-base font-medium leading-7 text-[#8A7A6E]">
               ClinicBrief will now organize this into review cards. You will confirm, edit, or hide key points before opening the outcome hub, brief, export, or practice tools.
             </p>
-            <button className="inline-flex min-h-11 w-fit items-center gap-2 rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white hover:bg-clinic-primaryDark disabled:opacity-60" disabled={isSubmitting} type="submit">
+            <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#C8553D] px-5 py-3 font-extrabold text-white shadow-[0_10px_22px_rgba(200,85,61,0.32)] hover:bg-[#B84B36] disabled:opacity-60" disabled={isSubmitting} type="submit">
               {isSubmitting ? <Loader2 aria-hidden className="h-5 w-5 animate-spin" /> : <Sparkles aria-hidden className="h-5 w-5" />}
               {isSubmitting ? "Organizing..." : isGuidedDemo ? "Open demo review" : "Organize key points"}
             </button>
@@ -623,15 +620,15 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
         {stepIndex === 6 ? (
           <div className="grid gap-5">
-            <h3 className="text-2xl font-semibold text-clinic-ink">Your outcome hub is next.</h3>
-            <p className="max-w-3xl text-base leading-7 text-clinic-muted">
+            <h3 className="text-3xl font-semibold text-[#3D2F26]">Your appointment pack is ready.</h3>
+            <p className="max-w-3xl text-base font-medium leading-7 text-[#8A7A6E]">
               After review, the hub gives you large simple paths for the appointment brief, timeline, questions to ask, practice, and export. Settings and delete controls stay available but secondary.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link className="inline-flex min-h-11 items-center rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white hover:bg-clinic-primaryDark" href={createdCaseId ? `/cases/${createdCaseId}` : "/cases/sample-preop"}>
+              <Link className="inline-flex min-h-12 items-center rounded-full bg-[#C8553D] px-5 py-3 font-extrabold text-white hover:bg-[#B84B36]" href={createdCaseId ? `/cases/${createdCaseId}` : "/cases/sample-preop"}>
                 Open outcome hub
               </Link>
-              <Link className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/cases/new">
+              <Link className="inline-flex min-h-12 items-center rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" href="/cases/new">
                 Start another pack
               </Link>
             </div>
@@ -640,12 +637,12 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       </section>
 
       <div className="flex flex-wrap justify-between gap-3">
-        <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50 disabled:opacity-50" disabled={stepIndex === 0 || isSubmitting} onClick={() => setStepIndex((index) => Math.max(0, index - 1))} type="button">
+        <button className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-4 py-2 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0] disabled:opacity-50" disabled={stepIndex === 0 || isSubmitting} onClick={() => setStepIndex((index) => Math.max(0, index - 1))} type="button">
           <ArrowLeft aria-hidden className="h-5 w-5" />
           Back
         </button>
         {stepIndex < 5 ? (
-          <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50" disabled={!canMoveNext || isSubmitting} onClick={() => setStepIndex((index) => Math.min(steps.length - 1, index + 1))} type="button">
+          <button className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#C8553D] px-5 py-3 font-extrabold text-white shadow-[0_10px_22px_rgba(200,85,61,0.32)] hover:bg-[#B84B36] disabled:opacity-50" disabled={!canMoveNext || isSubmitting} onClick={() => setStepIndex((index) => Math.min(steps.length - 1, index + 1))} type="button">
             Next
             <ArrowRight aria-hidden className="h-5 w-5" />
           </button>
@@ -657,12 +654,12 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
 function SummaryTile({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="grid gap-2 rounded-md border border-clinic-line bg-white p-3">
-      <div className="flex items-center gap-2 text-clinic-primary">
+    <div className="grid gap-2 rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-3">
+      <div className="flex items-center gap-2 text-[#C8553D]">
         {icon}
         <span className="text-xs font-semibold uppercase">{label}</span>
       </div>
-      <p className="text-xl font-semibold text-clinic-ink">{value}</p>
+      <p className="text-xl font-semibold text-[#3D2F26]">{value}</p>
     </div>
   );
 }
@@ -688,7 +685,7 @@ function isStepReady(
   }
 
   if (stepIndex === 1) {
-    return state.profile.firstName.trim().length > 0;
+    return state.profile.firstName.trim().length > 0 && state.profile.age.trim().length > 0;
   }
 
   if (stepIndex === 3) {
