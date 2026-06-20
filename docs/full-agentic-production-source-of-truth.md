@@ -83,6 +83,16 @@ Stable contract exports:
 
 These contracts do not implement UI or persistence behavior by themselves. Downstream workstreams should derive state from existing repository data and keep final outputs limited to user-reviewed facts, answers, and pattern cards.
 
+## Voice/Text Dump Intake Contract
+
+The planned voice-first onboarding flow must use browser speech-to-text transcript capture only. ClinicBrief must not upload, process, or store audio for this flow.
+
+Users must edit or explicitly review the transcript or pasted text before saving it. Once saved, the reviewed transcript/source text becomes a source document, using existing document/source-preview boundaries such as `VOICE_TRANSCRIPT` or `TEXT_NOTE`.
+
+Raw transcript text, pasted source text, source quotes, file names, medication names, symptom names, prompts, and free-text narratives must never be sent to analytics, Novus, or Pendo. Analytics may use counts, supported feature states, and source/document types only.
+
+Mode suggestion for voice/text onboarding is workflow-only. It may suggest `PREOP`, `CHRONIC`, `CARER`, or `GENERAL` from appointment-prep cues, but it must not infer diagnoses, severity, risk, treatment needs, medication changes, or emergency priority.
+
 ## Non-Negotiable Safety Boundary
 
 ClinicBrief organizes user-provided information for appointment preparation only.

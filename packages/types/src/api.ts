@@ -1,6 +1,6 @@
 import type { AppointmentBrief, BriefType, CaseMode, ClinicCaseSnapshot, DeleteCaseReceipt, DocumentType, ExtractedFact, HealthDocument, RehearsalSession, SourcePreview, TimelineEvent } from "./clinic";
 import type { MissingQuestion, RehearsalMode, RehearsalSuggestedFactUpdate } from "./extraction";
-import type { PatternCard } from "./live-flow";
+import type { GuidedIntakeCaptureMethod, PatternCard } from "./live-flow";
 import type { RuntimeReadiness } from "./runtime";
 
 export type ApiError = {
@@ -18,6 +18,18 @@ export type CreateCaseRequest = {
   title: string;
   mode: CaseMode;
   consent: true;
+};
+
+export type CreateCaseInitialSource = {
+  text: string;
+  sourceLabel?: string;
+  captureMethod: Extract<GuidedIntakeCaptureMethod, "typed" | "pasted" | "browser_speech_transcript">;
+  userReviewed: true;
+  storesAudio: false;
+};
+
+export type CreateCaseWithInitialSourceRequest = CreateCaseRequest & {
+  initialSource?: CreateCaseInitialSource;
 };
 
 export type CreateCaseResponse = {
