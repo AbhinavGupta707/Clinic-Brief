@@ -196,7 +196,18 @@ function getStorageReadiness(env: Env): RuntimeServiceReadiness {
 function getNovusReadiness(env: Env): RuntimeServiceReadiness {
   const publicEnv = ["NEXT_PUBLIC_NOVUS_CLIENT_KEY", "NEXT_PUBLIC_PENDO_API_KEY"];
   const configuredPublicEnv = presentNames(env, publicEnv);
-  const configuredEnv = [...configuredPublicEnv, ...presentNames(env, ["NOVUS_API_KEY"])];
+  const configuredServerEnv = presentNames(env, ["PENDO_INTEGRATION_KEY"]);
+  const configuredEnv = [...configuredPublicEnv, ...configuredServerEnv, ...presentNames(env, ["NOVUS_API_KEY"])];
+
+  if (configuredServerEnv.length > 0) {
+    return {
+      state: "configured",
+      backend: "novus_pendo_track_api",
+      summary: "Pendo Track API integration key is configured server-side. Client events route through /api/events and are sanitized before forwarding.",
+      configuredEnv,
+      missingEnv: []
+    };
+  }
 
   if (configuredPublicEnv.length === 0) {
     return {
@@ -204,7 +215,7 @@ function getNovusReadiness(env: Env): RuntimeServiceReadiness {
       backend: "novus_pendo",
       summary:
         configuredEnv.length > 0
-          ? "A server-only Novus key is present, but the browser Novus/Pendo install is not active without a public client key or dashboard-generated snippet."
+          ? "A server-only Novus key marker is present, but it is not the generated Pendo Track API integration key and the browser Novus/Pendo install is not active without a public client key or dashboard-generated snippet."
           : "Novus/Pendo is not installed. Safe local analytics sanitizer proof still works.",
       configuredEnv,
       missingEnv: publicEnv,

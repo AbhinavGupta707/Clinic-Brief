@@ -81,4 +81,4 @@ Close: "ClinicBrief is a working public-web prototype for patient-controlled app
 ## Submission Placeholders
 
 - Public URL: `https://clinic-brief-web.vercel.app/`
-- Novus screenshot: capture after installing the real dashboard snippet and running this flow with maximum privacy masking.
+- Novus screenshot: capture after configuring the real dashboard key, preferably `PENDO_INTEGRATION_KEY` server-side, and running this flow with maximum privacy masking.

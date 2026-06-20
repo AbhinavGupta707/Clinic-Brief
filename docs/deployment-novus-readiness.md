@@ -34,7 +34,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_STORAGE_BUCKET=clinicbrief
-# Set one of these only from the Novus/Pendo dashboard-generated install details.
+# Preferred Novus/Pendo server Track API key from the generated install PR. Keep server-only.
+PENDO_INTEGRATION_KEY=...
+# Optional browser SDK keys from the Novus/Pendo dashboard-generated install details.
 NEXT_PUBLIC_PENDO_API_KEY=...
 NEXT_PUBLIC_NOVUS_CLIENT_KEY=...
 ```
@@ -43,23 +45,25 @@ If the deployment uses the memory backend, the synthetic demo and local real-cas
 
 ## Novus/Pendo Install Steps
 
-Novus installation is blocked locally until a real dashboard-generated snippet or public client key is available. Do not fake installation.
+Novus installation is blocked locally until a real dashboard-generated key/snippet is available. Do not fake installation.
 
 External steps:
 
 1. Open the Novus/Pendo dashboard and create or select the ClinicBrief web app.
 2. Connect the GitHub repository and authorize the Novus GitHub app for the ClinicBrief repo/branch.
 3. Let Novus scan the codebase. If Novus creates an official install PR, review it for privacy settings and merge that PR rather than hand-writing competing snippet code.
-4. If the dashboard provides a public Pendo/Novus client key instead of a PR, add it to Vercel as `NEXT_PUBLIC_PENDO_API_KEY` or `NEXT_PUBLIC_NOVUS_CLIENT_KEY`.
-5. Keep `NOVUS_API_KEY` server-only if the dashboard provides one. Do not expose it in client components, screenshots, browser logs, or analytics props.
-6. The root layout includes `NovusPendoProvider`, which loads the Pendo agent only when a public key is present. It initializes an anonymous visitor id from local storage and a generic `clinicbrief-public-demo` account id. It does not use case ids, names, emails, document names, or health-content-derived identifiers.
-7. Configure Session Replay to maximum privacy with all inputs and text masked.
-8. Use AI Agent Tracking only with the masked rehearsal lifecycle events in `trackAgentEvent`; do not send prompts, responses, messages, transcripts, case ids, or source content to Novus.
-9. Deploy, open the public URL, and run the synthetic demo flow plus the live guided create flow.
-10. Visit `/novus-proof` and verify the listed events only include mode, counts, confidence bands, and brief type.
-11. Capture the Novus dashboard screenshot showing ClinicBrief activity and no raw health content.
+4. The generated Novus PR used a Pendo server Track API integration key named `PENDO_INTEGRATION_KEY`. Add that key to Vercel Production as a server-only environment variable. Do not expose it with a `NEXT_PUBLIC_` prefix.
+5. If the dashboard also provides a public browser SDK key, add it to Vercel as `NEXT_PUBLIC_PENDO_API_KEY` or `NEXT_PUBLIC_NOVUS_CLIENT_KEY`. This is optional when `PENDO_INTEGRATION_KEY` is configured.
+6. Keep any other server-only Novus key private. Do not expose it in client components, screenshots, browser logs, or analytics props.
+7. The `/api/events` route forwards only sanitized props to the Pendo Track API when `PENDO_INTEGRATION_KEY` is present. It never forwards case ids, prompts, responses, transcripts, messages, source quotes, file names, or free text.
+8. The root layout includes `NovusPendoProvider`, which loads the Pendo browser agent only when a public key is present. It initializes an anonymous visitor id from local storage and a generic `clinicbrief-public-demo` account id. It does not use case ids, names, emails, document names, or health-content-derived identifiers.
+9. Configure Session Replay to maximum privacy with all inputs and text masked.
+10. Use AI Agent Tracking only with the masked rehearsal lifecycle events in `trackAgentEvent`; do not send prompts, responses, messages, transcripts, case ids, or source content to Novus.
+11. Deploy, open the public URL, and run the synthetic demo flow plus the live guided create flow.
+12. Visit `/novus-proof` and verify the listed events only include mode, counts, confidence bands, and brief type.
+13. Capture the Novus dashboard screenshot showing ClinicBrief activity and no raw health content.
 
-The existing event wrapper posts to `/api/events` for sanitizer proof and calls `window.pendo.track(eventName, safeProps)` only after unsafe props are dropped. Without the public dashboard key or generated snippet, Novus remains uninstalled and `/novus-proof` says so honestly.
+The existing event wrapper posts to `/api/events` for sanitizer proof and server Track API forwarding. It also calls `window.pendo.track(eventName, safeProps)` only after unsafe props are dropped and only if the optional browser SDK is loaded. Without `PENDO_INTEGRATION_KEY`, a public dashboard key, or a generated snippet, Novus remains uninstalled and `/novus-proof` says so honestly.
 
 ## Persistence And Storage
 

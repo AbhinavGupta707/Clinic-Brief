@@ -68,4 +68,22 @@ describe("runtime readiness contract", () => {
     });
     expect(JSON.stringify(readiness)).not.toContain("private-novus-secret");
   });
+
+  it("treats the generated Pendo integration key env as server-side Novus Track API configuration", () => {
+    const readiness = getRuntimeReadiness({
+      CLINICBRIEF_DATA_BACKEND: "memory",
+      CLINICBRIEF_STORAGE_BACKEND: "memory",
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      PENDO_INTEGRATION_KEY: "private-pendo-integration-secret"
+    });
+
+    expect(readiness.ok).toBe(true);
+    expect(readiness.novus).toMatchObject({
+      state: "configured",
+      backend: "novus_pendo_track_api",
+      configuredEnv: ["PENDO_INTEGRATION_KEY"],
+      missingEnv: []
+    });
+    expect(JSON.stringify(readiness)).not.toContain("private-pendo-integration-secret");
+  });
 });

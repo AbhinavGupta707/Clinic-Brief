@@ -45,7 +45,7 @@ Patients often repeat their story to multiple clinicians and may forget importan
 - Browser Web Speech API for reviewed speech-to-text source capture
 - Browser `SpeechSynthesis` for local read-back, with no server audio storage
 - Server PDF generation plus Markdown and browser print-to-PDF fallback
-- Novus/Pendo-safe event wrapper with optional `window.pendo.track` forwarding after sanitization
+- Novus/Pendo-safe event wrapper with server Track API forwarding after sanitization and optional browser SDK forwarding
 - Vercel deployment target
 
 ## Privacy and safety
@@ -71,7 +71,7 @@ The clearest product value came from showing the transformation, not from a gene
 ## Remaining manual submission steps
 
 - Ensure the latest `main` is deployed to the public Vercel URL.
-- Install the final Novus/Pendo dashboard snippet on the deployed URL.
+- Configure the final Novus/Pendo dashboard key on the deployed URL, preferably `PENDO_INTEGRATION_KEY` server-side for Track API events.
 - Capture the Novus dashboard screenshot showing sanitized activity.
 - Record the under-3-minute demo video.
 - Paste this draft into Devpost and replace the URL/screenshot placeholders.

@@ -102,7 +102,7 @@ Local development defaults to `CLINICBRIEF_STORAGE_BACKEND=memory`, which stores
 
 ## Novus Eligibility
 
-ClinicBrief is Novus-ready but does not fake installation. Install the real dashboard-generated Novus/Pendo snippet during deployment, configure Session Replay to maximum privacy with all inputs and text masked, and use AI Agent Tracking only through masked rehearsal lifecycle events. `/novus-proof` shows the sanitized event contract.
+ClinicBrief is Novus-ready but does not fake installation. Configure the dashboard-generated `PENDO_INTEGRATION_KEY` server-side for the Pendo Track API, optionally add a public browser SDK key if Novus provides one, configure Session Replay to maximum privacy with all inputs and text masked, and use AI Agent Tracking only through masked rehearsal lifecycle events. `/novus-proof` shows the sanitized event contract.
 
 ## Final Integration
 

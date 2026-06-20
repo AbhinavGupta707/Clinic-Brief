@@ -108,7 +108,7 @@ For Prisma on Supabase pooler, use the transaction pooler URL with `?pgbouncer=t
 
 ## Novus Next Step
 
-Novus remains a dashboard install step after the deployed product path is accepted. Use the official Novus/Pendo web install flow for `https://clinic-brief-web.vercel.app`, configure Session Replay to maximum privacy with all inputs/text masked, and use AI Agent Tracking only through masked rehearsal lifecycle events without prompts, responses, transcripts, case ids, or source content.
+Novus remains a dashboard install step after the deployed product path is accepted. The generated Novus/Pendo PR exposed a server Track API key name, `PENDO_INTEGRATION_KEY`; add that to Vercel Production as a server-only env var, or add a public browser SDK key only if Novus provides one. Use the official Novus/Pendo flow for `https://clinic-brief-web.vercel.app`, configure Session Replay to maximum privacy with all inputs/text masked, and use AI Agent Tracking only through masked rehearsal lifecycle events without prompts, responses, transcripts, case ids, or source content.
 
 Analytics must remain count/state only. Do not send raw health text, source quotes, medication names, symptom names, file names, prompts, responses, transcripts, messages, case ids, or free-text narratives.
 

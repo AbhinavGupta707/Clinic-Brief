@@ -4,6 +4,7 @@ import { AppShell } from "../../components/app-shell";
 
 export default function NovusProofPage() {
   const hasNovusClientKey = Boolean(process.env.NEXT_PUBLIC_NOVUS_CLIENT_KEY || process.env.NEXT_PUBLIC_PENDO_API_KEY);
+  const hasPendoIntegrationKey = Boolean(process.env.PENDO_INTEGRATION_KEY);
 
   return (
     <AppShell eyebrow="Submission proof" title="Novus-safe analytics proof">
@@ -71,7 +72,9 @@ export default function NovusProofPage() {
               <CheckCircle2 size={18} aria-hidden />
               Sanitizer example
             </h2>
-            <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">Unsafe keys are dropped before the browser posts the event.</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">
+              Unsafe keys are dropped before events are forwarded through the browser SDK or server Track API.
+            </p>
             <pre className="mt-3 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-[#F8F1E7] p-3 text-xs leading-5 text-[#3D2F26]">
               {JSON.stringify(sanitizedEventExample, null, 2)}
             </pre>
@@ -80,9 +83,7 @@ export default function NovusProofPage() {
           <section className="rounded-[1.25rem] border border-[#F0C8BE] bg-[#FFF0EA] p-5">
             <h2 className="font-semibold text-[#B84B36]">Novus install status</h2>
             <p className="mt-2 text-sm font-medium leading-6 text-[#5C4A3E]">
-              {hasNovusClientKey
-                ? "A public Novus/Pendo client key is present. The root layout loads the Pendo agent with an anonymous visitor id and forwards sanitized custom events only."
-                : "No real Novus/Pendo public client key is present in this build. Connect GitHub in Novus, merge the generated install PR or set the dashboard-provided public key in Vercel, then rerun the demo."}
+              {getNovusInstallStatusCopy({ hasNovusClientKey, hasPendoIntegrationKey })}
             </p>
           </section>
 
@@ -90,6 +91,7 @@ export default function NovusProofPage() {
             <h2 className="font-semibold text-[#3D2F26]">Required dashboard settings</h2>
             <ul className="mt-3 grid gap-2 text-sm font-medium leading-6 text-[#8A7A6E]">
               <li>GitHub install: use the official Novus dashboard flow and merge the generated install PR if Novus creates one.</li>
+              <li>Server Track API: use `PENDO_INTEGRATION_KEY` server-side when available.</li>
               <li>Session Replay: maximum privacy, with all inputs and text masked.</li>
               <li>Custom events: route and funnel counts only, using the sanitizer shown here.</li>
               <li>AI Agent Tracking: rehearsal events use masked lifecycle tokens only, never prompts, responses, messages, or case ids.</li>
@@ -107,4 +109,26 @@ export default function NovusProofPage() {
       </div>
     </AppShell>
   );
+}
+
+function getNovusInstallStatusCopy({
+  hasNovusClientKey,
+  hasPendoIntegrationKey
+}: {
+  hasNovusClientKey: boolean;
+  hasPendoIntegrationKey: boolean;
+}) {
+  if (hasPendoIntegrationKey && hasNovusClientKey) {
+    return "Server Track API and public browser SDK keys are present. Events are sanitized before forwarding, and the browser agent uses an anonymous visitor id.";
+  }
+
+  if (hasPendoIntegrationKey) {
+    return "A server-side Pendo Track API integration key is present. Browser events post to /api/events and are sanitized before server-side forwarding.";
+  }
+
+  if (hasNovusClientKey) {
+    return "A public Novus/Pendo client key is present. The root layout loads the Pendo agent with an anonymous visitor id and forwards sanitized custom events only.";
+  }
+
+  return "No real Novus/Pendo key is present in this build. Connect GitHub in Novus, use the generated PENDO_INTEGRATION_KEY server-side or set the dashboard-provided public key in Vercel, then rerun the demo.";
 }
