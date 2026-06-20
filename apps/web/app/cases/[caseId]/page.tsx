@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardCheck, Download, FileText, HelpCircle, MessageSquareText, RotateCcw, ShieldCheck } from "lucide-react";
+import { Activity, ArrowRight, ClipboardCheck, Download, FileText, HelpCircle, MessageSquareText, RotateCcw, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { AppShell } from "../../../components/app-shell";
 import { Chip, DemoFlowNav, SectionHeader } from "../../../components/demo/demo-case-components";
 import { getClinicRepository } from "../../../lib/server/clinic-repository";
-import { buildCaseDashboardState, getDashboardTimeline, getDefaultBriefType } from "./dashboard-state";
+import { buildCaseDashboardState, buildChronicLongitudinalDashboardState, getDashboardTimeline, getDefaultBriefType } from "./dashboard-state";
 
 export default async function CaseDashboardPage({ params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
@@ -16,6 +16,7 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
   }
 
   const dashboard = buildCaseDashboardState(record);
+  const chronicDashboard = record.mode === "CHRONIC" ? buildChronicLongitudinalDashboardState(record) : undefined;
   const timeline = getDashboardTimeline(record);
   const briefType = getDefaultBriefType(record);
   const latestBrief = record.briefs.find((brief) => brief.briefType === briefType) ?? record.briefs[0];
@@ -54,6 +55,125 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
         <MetricCard label="Open questions" value={dashboard.counts.openQuestions} detail="For appointment prep" />
         <MetricCard label="Briefs" value={dashboard.counts.briefs} detail={latestBrief ? "Draft available" : "Ready after review"} />
       </section>
+
+      {chronicDashboard ? (
+        <DashboardPanel icon={Activity} title="Longitudinal view">
+          <div className="grid gap-4">
+            <div className="grid gap-3 rounded-md border border-cyan-100 bg-clinic-surface p-4 md:grid-cols-[1fr_auto] md:items-start">
+              <div className="grid gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Chip tone={chronicDashboard.readyForBrief.ready ? "success" : "warning"}>
+                    {chronicDashboard.readyForBrief.ready ? "ready for brief" : "review needed"}
+                  </Chip>
+                  <Chip>{chronicDashboard.readyForBrief.reviewedFactCount} reviewed facts</Chip>
+                </div>
+                <h3 className="text-base font-semibold text-clinic-ink">Ongoing history for this appointment</h3>
+                <p className="text-sm leading-6 text-clinic-muted">{chronicDashboard.readyForBrief.reason}</p>
+                {chronicDashboard.appointmentGoal ? (
+                  <p className="rounded-md border border-cyan-100 bg-white p-3 text-sm leading-6 text-clinic-muted">
+                    <span className="font-semibold text-clinic-ink">Current appointment goal: </span>
+                    {chronicDashboard.appointmentGoal}
+                  </p>
+                ) : null}
+              </div>
+              <Link
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-clinic-primaryDark"
+                href={chronicDashboard.readyForBrief.href}
+              >
+                {chronicDashboard.readyForBrief.ready ? "Open brief" : "Continue"}
+                <ArrowRight size={17} aria-hidden />
+              </Link>
+            </div>
+
+            {chronicDashboard.emptyState ? (
+              <div className="grid gap-3 rounded-md border border-dashed border-clinic-line p-4">
+                <div>
+                  <h3 className="font-semibold text-clinic-ink">{chronicDashboard.emptyState.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-clinic-muted">{chronicDashboard.emptyState.body}</p>
+                </div>
+                <Link
+                  className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-3 text-sm font-semibold text-clinic-ink transition hover:bg-cyan-50"
+                  href={chronicDashboard.emptyState.primaryHref}
+                >
+                  {chronicDashboard.emptyState.primaryLabel}
+                  <ArrowRight size={17} aria-hidden />
+                </Link>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {chronicDashboard.sections.map((section) => (
+                <div key={section.id} className="grid content-start gap-3 rounded-md border border-cyan-100 p-4">
+                  <h3 className="text-sm font-semibold text-clinic-ink">{section.title}</h3>
+                  {section.items.length > 0 ? (
+                    <ul className="grid gap-2">
+                      {section.items.map((item) => (
+                        <li key={item.id} className="rounded-md bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted">
+                          {item.text}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm leading-6 text-clinic-muted">Reviewed facts for this section will appear here.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid content-start gap-3 rounded-md border border-cyan-100 p-4">
+                <h3 className="text-sm font-semibold text-clinic-ink">Open uncertainties and questions to ask</h3>
+                {chronicDashboard.openUncertainties.length > 0 || chronicDashboard.openQuestions.length > 0 ? (
+                  <ul className="grid gap-2">
+                    {chronicDashboard.openUncertainties.map((item) => (
+                      <li key={item.id} className="rounded-md bg-clinic-surface p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Chip tone="warning">uncertainty</Chip>
+                          <Chip>reviewed</Chip>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-clinic-muted">{item.text}</p>
+                      </li>
+                    ))}
+                    {chronicDashboard.openQuestions.map((question) => (
+                      <li key={question.id} className="rounded-md bg-clinic-surface p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Chip tone={question.priority === "high" ? "warning" : "primary"}>{question.priority} priority</Chip>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold leading-6 text-clinic-ink">{question.question}</p>
+                        <p className="mt-1 text-sm leading-6 text-clinic-muted">{question.whyItMattersForAppointment}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm leading-6 text-clinic-muted">Questions will appear after extraction or when the user adds clinician questions.</p>
+                )}
+              </div>
+
+              <div className="grid content-start gap-3 rounded-md border border-cyan-100 p-4">
+                <h3 className="text-sm font-semibold text-clinic-ink">Needs review before it can shape summaries</h3>
+                {chronicDashboard.needsReview.length > 0 ? (
+                  <ul className="grid gap-2">
+                    {chronicDashboard.needsReview.map((item) => (
+                      <li key={item.id} className="rounded-md bg-amber-50 p-3 text-sm leading-6 text-clinic-muted">
+                        {item.text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm leading-6 text-clinic-muted">No unreviewed facts are waiting. Rejected facts are not shown here or in summaries.</p>
+                )}
+                <Link
+                  className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-3 text-sm font-semibold text-clinic-ink transition hover:bg-cyan-50"
+                  href={`/cases/${caseId}/review`}
+                >
+                  Review facts
+                  <ArrowRight size={17} aria-hidden />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </DashboardPanel>
+      ) : null}
 
       <section className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
         <SectionHeader
