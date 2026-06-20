@@ -5,8 +5,8 @@ import { SafetyDisclaimer } from "../components/safety-disclaimer";
 
 export default function HomePage() {
   return (
-    <main id="main-content" className="min-h-screen bg-[#F8F1E7] text-[#3D2F26]">
-      <section className="mx-auto grid w-[min(100%-2rem,72rem)] gap-10 py-[var(--section-y)]">
+    <main id="main-content" className="min-h-screen overflow-x-hidden bg-[#F8F1E7] text-[#3D2F26]">
+      <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-[var(--section-y)]">
         <nav aria-label="Primary" className="flex items-center justify-between">
           <span className="text-lg font-extrabold text-[#3D2F26]">ClinicBrief</span>
           <Link className="rounded-full px-3 py-2 text-sm font-bold text-[#5C4A3E] hover:bg-[#FFFDF8]" href="/privacy">

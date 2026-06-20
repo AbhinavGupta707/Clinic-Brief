@@ -7,6 +7,7 @@ import { AppShell } from "../../../../components/app-shell";
 import { Chip, DemoFlowNav, SectionHeader } from "../../../../components/demo/demo-case-components";
 import { getClinicRepository } from "../../../../lib/server/clinic-repository";
 import { listPatternCards } from "../../../../lib/server/pattern-service";
+import { BriefEventTracker } from "./brief-event-tracker";
 import { BriefReadbackControls } from "./readback-controls";
 
 type BriefPageProps = {
@@ -47,6 +48,7 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
 
   return (
     <AppShell eyebrow={`Case ${caseId}`} title={brief.title}>
+      <BriefEventTracker briefType={selectedType} factCount={record.facts.length} mode={record.mode} sourceCount={brief.sourceCoverage.length} />
       {isDemoCase ? <DemoFlowNav current="Brief" /> : null}
 
       <SectionHeader
@@ -73,8 +75,8 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
         })}
       </nav>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
-        <article className="clinic-print-page grid gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+        <article className="clinic-print-page grid min-w-0 gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
           <header className="grid gap-3 border-b border-[#EFE2D2] pb-5">
             <div className="flex flex-wrap items-center gap-2 text-sm text-[#8A7A6E]">
               <Chip tone="success">Patient-reviewed draft</Chip>
@@ -130,7 +132,7 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
             <OutputBriefSection title="Allergies and important notes" icon={FileText}>
               <BulletList items={brief.allergiesAndImportantNotes} />
             </OutputBriefSection>
-            <OutputBriefSection title="Questions for clinician" icon={ClipboardList}>
+            <OutputBriefSection id="questions" title="Questions for clinician" icon={ClipboardList}>
               <BulletList items={brief.questionsForClinician} />
             </OutputBriefSection>
           </div>
@@ -141,33 +143,33 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
           </section>
         </article>
 
-        <aside className="grid content-start gap-4">
-          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+        <aside className="grid min-w-0 content-start gap-4">
+          <section className="min-w-0 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
             <h2 className="font-semibold text-[#3D2F26]">Handoff card</h2>
             <dl className="mt-4 grid gap-3 text-sm">
               <div>
                 <dt className="font-semibold text-[#3D2F26]">Tell the same story</dt>
-                <dd className="mt-1 font-medium leading-6 text-[#8A7A6E]">{brief.ninetySecondStory}</dd>
+                <dd className="mt-1 break-words font-medium leading-6 text-[#8A7A6E]">{brief.ninetySecondStory}</dd>
               </div>
               <div>
                 <dt className="font-semibold text-[#3D2F26]">Keep consistent</dt>
-                <dd className="mt-1 font-medium leading-6 text-[#8A7A6E]">{brief.openUncertainties.slice(0, 3).join(", ")}</dd>
+                <dd className="mt-1 break-words font-medium leading-6 text-[#8A7A6E]">{brief.openUncertainties.slice(0, 3).join(", ")}</dd>
               </div>
               <div>
                 <dt className="font-semibold text-[#3D2F26]">Sources checked</dt>
-                <dd className="mt-1 font-medium leading-6 text-[#8A7A6E]">
+                <dd className="mt-1 break-words font-medium leading-6 text-[#8A7A6E]">
                   {brief.sourceCoverage.map((item) => `${item.section} (${item.sourceCount})`).join(", ")}
                 </dd>
               </div>
             </dl>
           </section>
 
-          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+          <section className="min-w-0 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
             <h2 className="font-semibold text-[#3D2F26]">Markdown fallback</h2>
             <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">
               The export package can produce this readable Markdown even when PDF rendering is unavailable.
             </p>
-            <pre className="mt-4 max-h-64 overflow-auto rounded-2xl bg-[#F8F1E7] p-4 text-xs leading-5 text-[#3D2F26]">{markdown}</pre>
+            <pre className="mt-4 max-h-64 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-[#F8F1E7] p-4 text-xs leading-5 text-[#3D2F26]">{markdown}</pre>
           </section>
 
           <div className="grid gap-3">
@@ -198,16 +200,18 @@ function parseBriefType(value: string | string[] | undefined): BriefType | null 
 }
 
 function OutputBriefSection({
+  id,
   title,
   icon: Icon,
   children
 }: {
+  id?: string;
   title: string;
   icon: typeof FileText;
   children: React.ReactNode;
 }) {
   return (
-    <section>
+    <section id={id} className="scroll-mt-6">
       <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
         <Icon size={18} aria-hidden />
         {title}

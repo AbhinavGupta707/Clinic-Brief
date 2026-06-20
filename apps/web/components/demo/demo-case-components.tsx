@@ -317,8 +317,8 @@ export function RehearsalPanel() {
   const firstQuestion = preopCase.expectedQuestions[0];
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
-      <section className="grid gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-4 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+      <section className="grid min-w-0 gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-4 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFE2D2] pb-3">
           <div>
             <p className="text-sm font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">Pre-op nurse rehearsal</p>
@@ -360,7 +360,7 @@ export function RehearsalPanel() {
         </div>
       </section>
 
-      <aside className="grid content-start gap-3 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-4 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+      <aside className="grid min-w-0 content-start gap-3 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-4 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
         <h3 className="font-semibold text-[#3D2F26]">Upcoming safe prompts</h3>
         {preopCase.expectedQuestions.slice(1, 4).map((question) => (
           <div key={question.id} className="rounded-2xl border border-[#EFE2D2] p-3 text-sm font-medium leading-6 text-[#8A7A6E]">
@@ -393,8 +393,8 @@ export function ExportFallbackPanel() {
   ].join("\n");
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="grid content-start gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+      <section className="grid min-w-0 content-start gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F6DFD2] text-[#C8553D]">
           <Download size={24} aria-hidden />
         </div>
@@ -420,9 +420,9 @@ export function ExportFallbackPanel() {
         </div>
       </section>
 
-      <label className="grid gap-2">
+      <label className="grid min-w-0 gap-2">
         <span className="text-sm font-semibold text-[#3D2F26]">Markdown fallback preview</span>
-        <textarea className="min-h-[32rem] resize-none rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-4 font-mono text-sm leading-6 text-[#3D2F26] shadow-[0_10px_28px_rgba(61,47,38,0.08)]" defaultValue={markdown} />
+        <textarea className="min-h-[32rem] min-w-0 resize-none rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-4 font-mono text-sm leading-6 text-[#3D2F26] shadow-[0_10px_28px_rgba(61,47,38,0.08)]" defaultValue={markdown} />
       </label>
     </div>
   );

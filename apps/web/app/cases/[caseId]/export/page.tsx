@@ -54,9 +54,9 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
         body="ClinicBrief now tries server-side PDF generation first. If the renderer is unavailable, the browser print and Markdown outputs stay complete and readable."
       />
 
-      <div className="grid gap-5 lg:grid-cols-[22rem_1fr]">
-        <aside className="print:hidden grid content-start gap-4">
-          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
+        <aside className="print:hidden grid min-w-0 content-start gap-4">
+          <section className="min-w-0 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
             <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
               <FileDown size={18} aria-hidden />
               PDF export
@@ -66,7 +66,7 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
             </p>
           </section>
 
-          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+          <section className="min-w-0 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
             <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
               <FileText size={18} aria-hidden />
               Markdown fallback
@@ -76,7 +76,7 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
             </p>
           </section>
 
-          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+          <section className="min-w-0 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
             <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
               <ShieldCheck size={18} aria-hidden />
               Share safely
@@ -95,7 +95,7 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
           </Link>
         </aside>
 
-        <article className="clinic-print-page grid gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
+        <article className="clinic-print-page grid min-w-0 gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
           <header className="grid gap-3 border-b border-[#EFE2D2] pb-5">
             <p className="text-sm font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">Printable output</p>
             <h2 className="text-2xl font-semibold text-[#3D2F26]">{brief.title}</h2>
@@ -129,7 +129,7 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
 
           <section>
             <h3 className="font-semibold text-[#3D2F26]">Markdown export</h3>
-            <pre className="mt-3 overflow-auto rounded-2xl bg-[#F8F1E7] p-4 text-xs leading-5 text-[#3D2F26]">{bundle.markdown}</pre>
+            <pre className="mt-3 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-[#F8F1E7] p-4 text-xs leading-5 text-[#3D2F26]">{bundle.markdown}</pre>
           </section>
         </article>
       </div>

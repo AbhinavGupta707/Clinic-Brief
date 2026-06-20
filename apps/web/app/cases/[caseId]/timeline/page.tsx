@@ -32,8 +32,8 @@ export default async function TimelinePage({ params }: { params: Promise<{ caseI
     <AppShell eyebrow={`Case ${caseId}`} title="Timeline">
       {isDemoCase ? <DemoFlowNav current="Timeline" /> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <section className="grid content-start gap-4">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+        <section className="grid min-w-0 content-start gap-4">
           <SectionHeader
             eyebrow="Chronological story"
             title="From scattered notes to a pre-op timeline"
@@ -43,7 +43,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ caseI
           <TimelineFilterList timeline={timeline} />
         </section>
 
-        <aside className="grid content-start gap-4">
+        <aside className="grid min-w-0 content-start gap-4">
           <PatternReviewPanel caseId={caseId} initialPatternCards={patternCards} />
 
           <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">

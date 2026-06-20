@@ -5,8 +5,8 @@ export default async function NewCasePage({ searchParams }: { searchParams: Prom
   const params = await searchParams;
 
   return (
-    <main className="min-h-screen bg-[#F8F1E7] text-[#3D2F26]">
-      <div className="mx-auto grid w-[min(100%-2rem,72rem)] gap-5 py-4 sm:py-6 lg:min-h-screen lg:grid-rows-[auto_auto_1fr] lg:gap-5">
+    <main className="min-h-screen overflow-x-hidden bg-[#F8F1E7] text-[#3D2F26]">
+      <div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-4 sm:py-6 lg:min-h-screen lg:grid-rows-[auto_auto_1fr] lg:gap-5">
         <nav aria-label="Primary" className="flex min-h-11 items-center justify-between">
           <Link className="rounded-full px-3 py-2 text-lg font-extrabold text-[#3D2F26] hover:bg-[#FFFDF8]" href="/">
             ClinicBrief

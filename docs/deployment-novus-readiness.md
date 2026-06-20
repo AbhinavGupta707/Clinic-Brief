@@ -34,6 +34,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_STORAGE_BUCKET=clinicbrief
+# Set one of these only from the Novus/Pendo dashboard-generated install details.
+NEXT_PUBLIC_PENDO_API_KEY=...
+NEXT_PUBLIC_NOVUS_CLIENT_KEY=...
 ```
 
 If the deployment uses the memory backend, the synthetic demo and local real-case fallback remain available, but uploaded case state is process memory and should be treated as prototype-only.
@@ -45,16 +48,18 @@ Novus installation is blocked locally until a real dashboard-generated snippet o
 External steps:
 
 1. Open the Novus/Pendo dashboard and create or select the ClinicBrief web app.
-2. Choose the official web JavaScript install flow for the deployed Vercel URL.
-3. Copy the dashboard-generated snippet or public client/API key into Vercel env. Use the exact variable names required by the generated snippet; `NEXT_PUBLIC_NOVUS_CLIENT_KEY` and `NEXT_PUBLIC_PENDO_API_KEY` are placeholders only.
-4. Add the real snippet to `apps/web/app/layout.tsx` or the official Novus install PR. Initialize with an anonymous visitor id that is not a case id, email address, document name, or health-content-derived identifier.
-5. Configure Session Replay to maximum privacy with all inputs and text masked.
-6. Leave AI Agent Tracking disabled for rehearsal unless prompts and responses are masked before they reach Novus.
-7. Deploy, open the public URL, and run the synthetic demo flow.
-8. Visit `/novus-proof` and verify the listed events only include mode, counts, confidence bands, and brief type.
-9. Capture the Novus dashboard screenshot showing ClinicBrief activity and no raw health content.
+2. Connect the GitHub repository and authorize the Novus GitHub app for the ClinicBrief repo/branch.
+3. Let Novus scan the codebase. If Novus creates an official install PR, review it for privacy settings and merge that PR rather than hand-writing competing snippet code.
+4. If the dashboard provides a public Pendo/Novus client key instead of a PR, add it to Vercel as `NEXT_PUBLIC_PENDO_API_KEY` or `NEXT_PUBLIC_NOVUS_CLIENT_KEY`.
+5. Keep `NOVUS_API_KEY` server-only if the dashboard provides one. Do not expose it in client components, screenshots, browser logs, or analytics props.
+6. The root layout includes `NovusPendoProvider`, which loads the Pendo agent only when a public key is present. It initializes an anonymous visitor id from local storage and a generic `clinicbrief-public-demo` account id. It does not use case ids, names, emails, document names, or health-content-derived identifiers.
+7. Configure Session Replay to maximum privacy with all inputs and text masked.
+8. Leave AI Agent Tracking disabled for rehearsal unless prompts and responses are masked before they reach Novus.
+9. Deploy, open the public URL, and run the synthetic demo flow plus the live guided create flow.
+10. Visit `/novus-proof` and verify the listed events only include mode, counts, confidence bands, and brief type.
+11. Capture the Novus dashboard screenshot showing ClinicBrief activity and no raw health content.
 
-The existing event wrapper will call `window.pendo.track(eventName, safeProps)` if a real Pendo/Novus agent exists on the page. Without the snippet, it only posts to the local `/api/events` sanitizer proof route.
+The existing event wrapper posts to `/api/events` for sanitizer proof and calls `window.pendo.track(eventName, safeProps)` only after unsafe props are dropped. Without the public dashboard key or generated snippet, Novus remains uninstalled and `/novus-proof` says so honestly.
 
 ## Persistence And Storage
 

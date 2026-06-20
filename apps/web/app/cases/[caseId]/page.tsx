@@ -22,8 +22,8 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
   const isDemoCase = caseId === "sample-preop";
 
   return (
-    <main className="min-h-screen bg-[#F8F1E7] text-[#3D2F26]">
-      <div className="mx-auto grid w-[min(100%-2rem,72rem)] gap-5 py-4 sm:py-6">
+    <main className="min-h-screen overflow-x-hidden bg-[#F8F1E7] text-[#3D2F26]">
+      <div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-4 sm:py-6">
         <nav aria-label="Primary" className="flex min-h-11 items-center justify-between">
           <Link className="rounded-full px-3 py-2 text-lg font-extrabold text-[#3D2F26] hover:bg-[#FFFDF8]" href="/">
             ClinicBrief
@@ -44,7 +44,7 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
           <p className="mx-auto max-w-[38rem] text-base font-medium leading-7 text-[#8A7A6E]">Choose what you want to use next. Your appointment pack stays under your control.</p>
         </section>
 
-      <section className="grid gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
+      <section className="grid min-w-0 gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
           <div className="grid gap-3">
             <div className="flex flex-wrap gap-2">
@@ -91,7 +91,7 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
       </section>
 
       {chronicDashboard ? (
-        <details className="group rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+        <details className="group min-w-0 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-clinic-ink">Longitudinal summary</h2>
@@ -129,7 +129,7 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
         </details>
       ) : null}
 
-      <details className="group rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+      <details className="group min-w-0 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-clinic-ink">Preparation details</h2>

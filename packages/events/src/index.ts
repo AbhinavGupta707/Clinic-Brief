@@ -58,11 +58,13 @@ const forbiddenPropertyPatterns = [
 ];
 
 type PendoAgent = {
+  initialize?: (config: { visitor: { id: string }; account: { id: string } }) => void;
   track?: (name: string, props?: SanitizedEventProps) => void;
 };
 
 declare global {
   interface Window {
+    __clinicbriefPendoInitialized?: boolean;
     pendo?: PendoAgent;
   }
 }

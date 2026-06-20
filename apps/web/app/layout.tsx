@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NovusPendoProvider } from "../components/novus-pendo-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         >
           Skip to content
         </a>
+        <NovusPendoProvider />
         {children}
       </body>
     </html>

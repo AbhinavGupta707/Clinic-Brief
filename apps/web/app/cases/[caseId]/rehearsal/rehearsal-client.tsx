@@ -109,8 +109,8 @@ export function RehearsalClient({
   }
 
   return (
-    <section className="grid gap-5 lg:grid-cols-[1fr_20rem]">
-      <div className="grid gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+    <section className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,20rem)]">
+      <div className="grid min-w-0 gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
         <div className="rounded-2xl border border-[#EFE2D2] bg-[#F8F1E7] p-4 text-sm font-medium leading-6 text-[#8A7A6E]">
           <strong className="text-[#3D2F26]">Practice opener: </strong>
           {story}
@@ -171,7 +171,7 @@ export function RehearsalClient({
         </div>
       </div>
 
-      <aside className="grid content-start gap-4">
+        <aside className="grid min-w-0 content-start gap-4">
         <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
           <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
             <CheckCircle2 size={18} aria-hidden />
