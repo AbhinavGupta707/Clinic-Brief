@@ -72,8 +72,20 @@ const demoProfile: GuidedProfile = {
   largerText: false
 };
 
-const demoAnswers: ConversationAnswer[] = [
-];
+const demoAnswerText: Record<string, string> = {
+  "What operation or pre-op appointment are you preparing for, if you know?":
+    "I am preparing for a planned shoulder procedure and want the pre-op nurse to understand the key history clearly.",
+  "What medicines, supplements, allergies, or previous reactions do you want listed for the team to confirm?":
+    "Please list salbutamol as needed, beclometasone twice daily, paracetamol as needed, occasional ibuprofen, and supplements that need confirmation.",
+  "Have you had a previous anaesthetic, operation, or hospital stay you want to mention?":
+    "I previously had nausea after an anaesthetic and want to remember to mention that before the procedure.",
+  "What transport, home support, or practical recovery details do you want to remember?":
+    "I need to confirm transport home and who can help after discharge.",
+  "What question do you most want to ask before the procedure?":
+    "What should I stop or continue before surgery, and what should I bring to the pre-op appointment?"
+};
+
+const demoAnswers: ConversationAnswer[] = [];
 
 export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
   const router = useRouter();
@@ -130,6 +142,16 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
   }, [answers.length, appointmentType, question, stepIndex, isQuestionLoading]);
 
   useEffect(() => {
+    if (!isGuidedDemo || stepIndex !== 3 || currentAnswer.trim()) {
+      return;
+    }
+
+    const activeQuestion = question || getGuidedQuestionAt(appointmentType, answers.length);
+    setQuestion(activeQuestion);
+    setCurrentAnswer(demoAnswerText[activeQuestion] ?? "");
+  }, [answers.length, appointmentType, currentAnswer, isGuidedDemo, question, stepIndex]);
+
+  useEffect(() => {
     setProfile(isGuidedDemo ? demoProfile : emptyProfile);
     setAppointmentType(isGuidedDemo ? "preop" : "upcoming");
     setConsent(isGuidedDemo);
@@ -176,10 +198,10 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       const payload = (await response.json()) as ApiResponse<GuidedQuestionResponse>;
 
       if (!payload.ok || !payload.data) {
-        setQuestion(getGuidedQuestionAt(appointmentType, answerHistory.length));
-        setStatus("Using a quick safe question so you can keep going.");
-        setError(payload.error?.message ?? "ClinicBrief could not tailor the next question.");
-        return;
+      setQuestion(getGuidedQuestionAt(appointmentType, answerHistory.length));
+      setStatus("Using the next safe question so you can keep going.");
+      setError(null);
+      return;
       }
 
       setQuestion(payload.data.question);
@@ -192,8 +214,8 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       }
     } catch {
       setQuestion(getGuidedQuestionAt(appointmentType, answerHistory.length));
-      setStatus("Using a quick safe question so you can keep going.");
-      setError("ClinicBrief could not tailor the next question quickly enough.");
+      setStatus("Using the next safe question so you can keep going.");
+      setError(null);
     } finally {
       setIsQuestionLoading(false);
     }
@@ -217,6 +239,13 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
     if (nextAnswers.length >= maxGuidedQuestions) {
       setConversationComplete(true);
       setStatus("You have answered the guided questions. Continue to add documents or skip that step.");
+      return;
+    }
+
+    if (isGuidedDemo) {
+      const nextQuestion = getGuidedQuestionAt(appointmentType, nextAnswers.length);
+      setQuestion(nextQuestion);
+      setCurrentAnswer(demoAnswerText[nextQuestion] ?? "");
       return;
     }
 
@@ -255,7 +284,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
         firstName: payload.data.profile.firstName || profile.firstName,
         age: payload.data.profile.age || profile.age,
         gender: payload.data.profile.gender || profile.gender,
-        aboutYou: payload.data.profile.aboutYou || profile.aboutYou
+        aboutYou: cleanAboutYou(payload.data.profile.aboutYou, transcript) || profile.aboutYou
       });
       setStatus(`Autofilled what ClinicBrief could read clearly. Confidence: ${Math.round(payload.data.confidence * 100)}%. Please review before continuing.`);
     } catch {
@@ -695,7 +724,7 @@ function parseProfileDraftLocally(transcript: string): Partial<GuidedProfile> {
   const clean = transcript.trim();
   const firstNameMatch = clean.match(/\b(?:my name is|name is|i am|i'm)\s+([A-Za-z][A-Za-z'-]{1,40})\b/i);
   const ageMatch = clean.match(/\b(?:i am|i'm|age|aged)\s+(\d{1,3})(?:\s*years?\s*old)?\b/i) ?? clean.match(/\b(\d{1,3})\s*years?\s*old\b/i);
-  const genderMatch = clean.match(/\b(?:i am a|i'm a|gender is|sex is)\s+(woman|man|female|male|non-binary|nonbinary)\b/i);
+  const genderMatch = clean.match(/\b(?:gender is|sex is|i am|i'm|and|,)\s+(?:a\s+)?(woman|man|female|male|non-binary|nonbinary)\b/i);
   const preparingFor = /\b(my dad|my mum|my mom|my mother|my father|my parent|my child|my partner|someone else|for him|for her|for them)\b/i.test(clean) ? "someone_else" : "self";
 
   return {
@@ -703,8 +732,43 @@ function parseProfileDraftLocally(transcript: string): Partial<GuidedProfile> {
     age: ageMatch?.[1] ?? "",
     gender: genderMatch?.[1] ?? "",
     preparingFor,
-    aboutYou: clean.slice(0, 180)
+    aboutYou: extractAdditionalProfileContext(clean)
   };
+}
+
+function cleanAboutYou(aboutYou: string | undefined, transcript: string): string {
+  const clean = aboutYou?.trim() ?? "";
+
+  if (!clean) {
+    return "";
+  }
+
+  const normalizedClean = normalizeProfileText(clean);
+  const normalizedTranscript = normalizeProfileText(transcript);
+
+  if (normalizedClean === normalizedTranscript) {
+    return extractAdditionalProfileContext(transcript);
+  }
+
+  if (clean.length > 180) {
+    return extractAdditionalProfileContext(clean);
+  }
+
+  return clean;
+}
+
+function extractAdditionalProfileContext(text: string): string {
+  const explicitContext = text.match(/\b(?:about me|about them|additional(?:ly)?|also|one more thing|worth knowing)[:,]?\s+(.{8,180})$/i)?.[1]?.trim();
+
+  if (explicitContext) {
+    return explicitContext;
+  }
+
+  return "";
+}
+
+function normalizeProfileText(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function isStepReady(

@@ -56,38 +56,38 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
 
       <div className="grid gap-5 lg:grid-cols-[22rem_1fr]">
         <aside className="print:hidden grid content-start gap-4">
-          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-            <h2 className="flex items-center gap-2 font-semibold text-clinic-ink">
+          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+            <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
               <FileDown size={18} aria-hidden />
               PDF export
             </h2>
-            <p className="mt-2 text-sm leading-6 text-clinic-muted">
+            <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">
               Download the server-generated PDF, or use {bundle.pdfFallback.label.toLowerCase()} if rendering is unavailable.
             </p>
           </section>
 
-          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-            <h2 className="flex items-center gap-2 font-semibold text-clinic-ink">
+          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+            <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
               <FileText size={18} aria-hidden />
               Markdown fallback
             </h2>
-            <p className="mt-2 text-sm leading-6 text-clinic-muted">
+            <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">
               The Markdown output is complete and readable if PDF rendering is unavailable during the demo.
             </p>
           </section>
 
-          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-            <h2 className="flex items-center gap-2 font-semibold text-clinic-ink">
+          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+            <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
               <ShieldCheck size={18} aria-hidden />
               Share safely
             </h2>
-            <p className="mt-2 text-sm leading-6 text-clinic-muted">{brief.safetyDisclaimer}</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">{brief.safetyDisclaimer}</p>
           </section>
 
           <ExportActions caseId={caseId} briefType={selectedType} bundle={bundle} mode={record.mode} sourceCount={brief.sourceCoverage.length} />
 
           <Link
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] transition hover:bg-[#F2ECE0]"
             href={`/cases/${caseId}/brief?type=${selectedType}`}
           >
             <ArrowLeft size={18} aria-hidden />
@@ -95,22 +95,22 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
           </Link>
         </aside>
 
-        <article className="clinic-print-page grid gap-5 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-          <header className="grid gap-3 border-b border-clinic-line pb-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.08em] text-clinic-primary">Printable output</p>
-            <h2 className="text-2xl font-semibold text-clinic-ink">{brief.title}</h2>
-            <p className="text-sm leading-6 text-clinic-muted">{brief.oneLineReasonForVisit}</p>
+        <article className="clinic-print-page grid gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
+          <header className="grid gap-3 border-b border-[#EFE2D2] pb-5">
+            <p className="text-sm font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">Printable output</p>
+            <h2 className="text-2xl font-semibold text-[#3D2F26]">{brief.title}</h2>
+            <p className="text-sm font-medium leading-6 text-[#8A7A6E]">{brief.oneLineReasonForVisit}</p>
           </header>
 
           <section>
-            <h3 className="font-semibold text-clinic-ink">90-second story</h3>
-            <p className="mt-2 text-sm leading-6 text-clinic-muted">{brief.ninetySecondStory}</p>
+            <h3 className="font-semibold text-[#3D2F26]">90-second story</h3>
+            <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">{brief.ninetySecondStory}</p>
           </section>
 
           {brief.chronicSections ? (
             <section>
-              <h3 className="font-semibold text-clinic-ink">Chronic appointment context</h3>
-              <ul className="mt-3 grid gap-2 text-sm leading-6 text-clinic-muted">
+              <h3 className="font-semibold text-[#3D2F26]">Chronic appointment context</h3>
+              <ul className="mt-3 grid gap-2 text-sm font-medium leading-6 text-[#8A7A6E]">
                 {[
                   ...brief.chronicSections.reportedConfirmedHistory.map((item) => `Reported confirmed history: ${item}`),
                   ...brief.chronicSections.conditionsBeingInvestigated.map((item) => `Being investigated or not yet confirmed: ${item}`),
@@ -119,7 +119,7 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
                   ...brief.chronicSections.functionalImpact.map((item) => `Functional impact: ${item}`),
                   ...brief.chronicSections.appointmentGoals.map((item) => `Appointment goal or question: ${item}`)
                 ].map((item) => (
-                  <li key={item} className="rounded-md border border-cyan-100 bg-white p-3">
+                  <li key={item} className="rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-3">
                     {item}
                   </li>
                 ))}
@@ -128,8 +128,8 @@ export default async function ExportPage({ params, searchParams }: ExportPagePro
           ) : null}
 
           <section>
-            <h3 className="font-semibold text-clinic-ink">Markdown export</h3>
-            <pre className="mt-3 overflow-auto rounded-md bg-clinic-surface p-4 text-xs leading-5 text-clinic-ink">{bundle.markdown}</pre>
+            <h3 className="font-semibold text-[#3D2F26]">Markdown export</h3>
+            <pre className="mt-3 overflow-auto rounded-2xl bg-[#F8F1E7] p-4 text-xs leading-5 text-[#3D2F26]">{bundle.markdown}</pre>
           </section>
         </article>
       </div>

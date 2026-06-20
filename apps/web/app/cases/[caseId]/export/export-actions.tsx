@@ -72,9 +72,9 @@ export function ExportActions({
   }
 
   return (
-    <section className="grid gap-3 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+    <section className="grid gap-3 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
       <button
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white transition hover:bg-cyan-800"
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#C8553D] px-5 py-3 font-extrabold text-white transition hover:bg-[#B84B36]"
         onClick={downloadServerPdf}
         type="button"
       >
@@ -82,7 +82,7 @@ export function ExportActions({
         Download PDF
       </button>
       <button
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#9CAD86] px-5 py-3 font-extrabold text-white transition hover:bg-[#879974]"
         onClick={printPdfFallback}
         type="button"
       >
@@ -90,7 +90,7 @@ export function ExportActions({
         {bundle.pdfFallback.label}
       </button>
       <button
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] transition hover:bg-[#F2ECE0]"
         onClick={downloadMarkdown}
         type="button"
       >
@@ -98,14 +98,14 @@ export function ExportActions({
         Download Markdown
       </button>
       <button
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] transition hover:bg-[#F2ECE0]"
         onClick={copyMarkdown}
         type="button"
       >
         <Clipboard size={18} aria-hidden />
         Copy Markdown
       </button>
-      <p className="text-sm leading-6 text-clinic-muted" role="status">
+      <p className="text-sm font-medium leading-6 text-[#8A7A6E]" role="status">
         {status}
       </p>
     </section>

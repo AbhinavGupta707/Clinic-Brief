@@ -1,45 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Mic, Send, ShieldAlert } from "lucide-react";
 import { Events, trackEvent } from "@clinicbrief/events";
 import type { ApiResponse, BriefType, MissingQuestion, RehearsalMessageResponse, RehearsalSession } from "@clinicbrief/types";
+import { useBrowserSpeechToText } from "../../../../lib/client/speech";
 
 type Message = {
   role: "assistant" | "user";
   body: string;
   blocked?: boolean;
 };
-
-type SpeechRecognitionEventLike = {
-  results: {
-    [index: number]: {
-      [index: number]: {
-        transcript: string;
-      };
-    };
-  };
-};
-
-type SpeechRecognitionLike = {
-  lang: string;
-  interimResults: boolean;
-  maxAlternatives: number;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
-
-declare global {
-  interface Window {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  }
-}
 
 export function RehearsalClient({
   briefType,
@@ -55,11 +26,7 @@ export function RehearsalClient({
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [draft, setDraft] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [speechSupported, setSpeechSupported] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [speechStatus, setSpeechStatus] = useState("Typed answers are always available.");
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const firstQuestion = questions[0]?.question ?? "What would you like to make sure you say at the appointment?";
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -67,11 +34,15 @@ export function RehearsalClient({
       body: `Let's practice your opening, then I will ask one appointment-prep question at a time. First: ${firstQuestion}`
     }
   ]);
+  const speech = useBrowserSpeechToText({
+    onTranscript: useCallback((transcript: string) => {
+      setDraft((value) => [value, transcript].filter(Boolean).join(" ").trim());
+    }, [])
+  });
 
   const answeredCount = useMemo(() => countAnsweredQuestions(messages), [messages]);
 
   useEffect(() => {
-    setSpeechSupported(Boolean(window.SpeechRecognition ?? window.webkitSpeechRecognition));
     trackEvent(Events.RehearsalStarted, { mode: "PREOP", briefType, questionCount: questions.length });
     void startSession();
   }, [briefType, questions.length]);
@@ -137,42 +108,11 @@ export function RehearsalClient({
     return (await response.json().catch(() => null)) as ApiResponse<RehearsalMessageResponse> | null;
   }
 
-  function startSpeechInput() {
-    const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!Recognition) {
-      setSpeechStatus("Speech input is unavailable in this browser. Type your answer instead.");
-      return;
-    }
-
-    const recognition = new Recognition();
-    recognition.lang = "en-GB";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript;
-      if (transcript) {
-        setDraft((value) => [value, transcript].filter(Boolean).join(" "));
-      }
-    };
-    recognition.onerror = () => {
-      setSpeechStatus("Speech input stopped. Type your answer if the microphone is unavailable.");
-      setIsListening(false);
-    };
-    recognition.onend = () => {
-      setSpeechStatus("Speech capture ended. Review the transcript before sending.");
-      setIsListening(false);
-    };
-    recognitionRef.current = recognition;
-    setIsListening(true);
-    setSpeechStatus("Listening. The transcript will appear in the answer box before it is sent.");
-    recognition.start();
-  }
-
   return (
     <section className="grid gap-5 lg:grid-cols-[1fr_20rem]">
-      <div className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-        <div className="rounded-md border border-cyan-100 bg-clinic-surface p-4 text-sm leading-6 text-clinic-muted">
-          <strong className="text-clinic-ink">Practice opener: </strong>
+      <div className="grid gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+        <div className="rounded-2xl border border-[#EFE2D2] bg-[#F8F1E7] p-4 text-sm font-medium leading-6 text-[#8A7A6E]">
+          <strong className="text-[#3D2F26]">Practice opener: </strong>
           {story}
         </div>
 
@@ -180,13 +120,13 @@ export function RehearsalClient({
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
-              className={`rounded-md border p-4 text-sm leading-6 ${
+              className={`rounded-2xl border p-4 text-sm font-medium leading-6 ${
                 message.role === "assistant"
-                  ? "border-clinic-line bg-clinic-surface text-clinic-muted"
-                  : "ml-auto max-w-[88%] border-emerald-200 bg-emerald-50 text-clinic-ink"
+                  ? "border-[#EFE2D2] bg-[#F8F1E7] text-[#8A7A6E]"
+                  : "ml-auto max-w-[88%] border-[#D9E5CF] bg-[#EEF3E8] text-[#3D2F26]"
               }`}
             >
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-clinic-primary">
+              <span className="mb-1 block text-xs font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">
                 {message.role === "assistant" ? "ClinicBrief rehearsal" : "Your answer"}
               </span>
               {message.body}
@@ -194,20 +134,20 @@ export function RehearsalClient({
           ))}
         </div>
 
-        <div className="grid gap-3 border-t border-clinic-line pt-4">
-          <label htmlFor="rehearsal-answer" className="font-semibold text-clinic-ink">
+        <div className="grid gap-3 border-t border-[#EFE2D2] pt-4">
+          <label htmlFor="rehearsal-answer" className="font-semibold text-[#3D2F26]">
             Your answer
           </label>
           <textarea
             id="rehearsal-answer"
-            className="min-h-32 rounded-md border border-clinic-line bg-white p-3 text-sm leading-6 text-clinic-ink shadow-inner focus:border-clinic-primary"
+            className="min-h-32 rounded-2xl border-2 border-[#EFE2D2] bg-[#FFFDF8] p-3 text-sm leading-6 text-[#3D2F26] shadow-inner focus:border-[#C8553D] focus:outline-none"
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Type how you would answer at the appointment..."
             value={draft}
           />
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#9CAD86] px-5 py-3 font-extrabold text-white transition hover:bg-[#879974]"
               disabled={isSending}
               onClick={handleSubmit}
               type="button"
@@ -216,35 +156,37 @@ export function RehearsalClient({
               {isSending ? "Sending" : "Send answer"}
             </button>
             <button
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!speechSupported || isListening}
-              onClick={startSpeechInput}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] transition hover:bg-[#F2ECE0] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={speech.capability === "unsupported" || speech.isListening}
+              onClick={speech.startListening}
               type="button"
             >
               <Mic size={18} aria-hidden />
-              {isListening ? "Listening" : "Use microphone"}
+              {speech.isListening ? "Listening" : "Use microphone"}
             </button>
           </div>
-          <p className="text-sm leading-6 text-clinic-muted">{speechStatus}</p>
+          <p className="text-sm font-medium leading-6 text-[#8A7A6E]">
+            {speech.error ?? (speech.capability === "unsupported" ? "Speech input is unavailable in this browser. Typed answers always work." : speech.isListening ? "Listening. Review the transcript before sending." : "Typed answers are always available.")}
+          </p>
         </div>
       </div>
 
       <aside className="grid content-start gap-4">
-        <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-          <h2 className="flex items-center gap-2 font-semibold text-clinic-ink">
+        <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+          <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
             <CheckCircle2 size={18} aria-hidden />
             Progress
           </h2>
-          <p className="mt-2 text-sm leading-6 text-clinic-muted">
+          <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">
             {Math.min(currentQuestionIndex, questions.length)} of {questions.length} appointment-prep questions answered.
           </p>
         </section>
-        <section className="rounded-md border border-amber-200 bg-amber-50 p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-amber-900">
+        <section className="rounded-[1.25rem] border border-[#F0C8BE] bg-[#FFF0EA] p-5">
+          <h2 className="flex items-center gap-2 font-semibold text-[#B84B36]">
             <ShieldAlert size={18} aria-hidden />
             Safety boundary
           </h2>
-          <p className="mt-2 text-sm leading-6 text-amber-900">
+          <p className="mt-2 text-sm font-medium leading-6 text-[#5C4A3E]">
             The rehearsal can help phrase facts and questions. It cannot diagnose, recommend treatment, advise on medication, or decide urgency.
           </p>
         </section>

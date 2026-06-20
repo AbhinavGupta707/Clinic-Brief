@@ -23,6 +23,27 @@ describe("guided profile autofill", () => {
     restoreEnv(originalKey, originalModel, originalRequireAi);
   });
 
+  it("extracts demographic fields without copying the whole intro into about you", async () => {
+    const originalKey = process.env.FIREWORKS_API_KEY;
+    const originalModel = process.env.FIREWORKS_MODEL;
+    const originalRequireAi = process.env.CLINICBRIEF_REQUIRE_AI;
+    delete process.env.FIREWORKS_API_KEY;
+    delete process.env.FIREWORKS_MODEL;
+    delete process.env.CLINICBRIEF_REQUIRE_AI;
+
+    const draft = await parseGuidedProfileDraft("What's my name is Chris and I am 45 years old and male and I'm preparing for someone else");
+
+    expect(draft.profile).toMatchObject({
+      firstName: "Chris",
+      age: "45",
+      gender: "male",
+      preparingFor: "someone_else",
+      aboutYou: ""
+    });
+
+    restoreEnv(originalKey, originalModel, originalRequireAi);
+  });
+
   it("does not silently autofill when AI is required but Fireworks is missing", async () => {
     const originalKey = process.env.FIREWORKS_API_KEY;
     const originalModel = process.env.FIREWORKS_MODEL;

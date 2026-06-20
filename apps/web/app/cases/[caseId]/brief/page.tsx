@@ -62,8 +62,8 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
             <Link
               key={item.type}
               aria-current={isSelected ? "page" : undefined}
-              className={`flex min-h-11 items-center justify-center rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${
-                isSelected ? "border-clinic-primary bg-clinic-primary text-white" : "border-clinic-line bg-white text-clinic-ink hover:bg-cyan-50"
+              className={`flex min-h-11 items-center justify-center rounded-full border px-3 py-2 text-center text-sm font-extrabold transition ${
+                isSelected ? "border-[#C8553D] bg-[#C8553D] text-white" : "border-[#E4D8C8] bg-[#FFFDF8] text-[#5C4A3E] hover:bg-[#F2ECE0]"
               }`}
               href={`/cases/${caseId}/brief?type=${item.type}`}
             >
@@ -74,15 +74,15 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
       </nav>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
-        <article className="clinic-print-page grid gap-5 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-          <header className="grid gap-3 border-b border-clinic-line pb-5">
-            <div className="flex flex-wrap items-center gap-2 text-sm text-clinic-muted">
+        <article className="clinic-print-page grid gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
+          <header className="grid gap-3 border-b border-[#EFE2D2] pb-5">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-[#8A7A6E]">
               <Chip tone="success">Patient-reviewed draft</Chip>
-              <span className="rounded-md bg-clinic-surface px-3 py-1 font-semibold text-clinic-ink">{mode.label}</span>
+              <span className="rounded-full bg-[#F8F1E7] px-3 py-1 font-semibold text-[#3D2F26]">{mode.label}</span>
               <span>{mode.audience}</span>
             </div>
-            <p className="text-lg font-semibold leading-7 text-clinic-ink">{brief.oneLineReasonForVisit}</p>
-            <p className="text-sm leading-6 text-clinic-muted">{mode.purpose}</p>
+            <p className="text-lg font-semibold leading-7 text-[#3D2F26]">{brief.oneLineReasonForVisit}</p>
+            <p className="text-sm font-medium leading-6 text-[#8A7A6E]">{mode.purpose}</p>
           </header>
 
           <OutputBriefSection title="90-second story" icon={MessageSquareText}>
@@ -94,8 +94,8 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
           <OutputBriefSection title="Key timeline" icon={ClipboardList}>
             <ul className="grid gap-3">
               {brief.keyTimeline.map((item) => (
-                <li key={`${item.dateLabel}-${item.event}`} className="grid gap-1 rounded-md border border-cyan-100 bg-cyan-50/40 p-3">
-                  <span className="text-sm font-semibold text-clinic-ink">{item.dateLabel}</span>
+                <li key={`${item.dateLabel}-${item.event}`} className="grid gap-1 rounded-2xl border border-[#EFE2D2] bg-[#F8F1E7] p-3">
+                  <span className="text-sm font-semibold text-[#3D2F26]">{item.dateLabel}</span>
                   <span>{item.event}</span>
                 </li>
               ))}
@@ -135,51 +135,51 @@ export default async function BriefPage({ params, searchParams }: BriefPageProps
             </OutputBriefSection>
           </div>
 
-          <section className="rounded-md border border-clinic-line bg-clinic-surface p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-clinic-primary">Required safety note</h2>
-            <p className="mt-2 text-sm leading-6 text-clinic-muted">{brief.safetyDisclaimer}</p>
+          <section className="rounded-2xl border border-[#EFE2D2] bg-[#F8F1E7] p-4">
+            <h2 className="text-sm font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">Required safety note</h2>
+            <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">{brief.safetyDisclaimer}</p>
           </section>
         </article>
 
         <aside className="grid content-start gap-4">
-          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-            <h2 className="font-semibold text-clinic-ink">Handoff card</h2>
+          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+            <h2 className="font-semibold text-[#3D2F26]">Handoff card</h2>
             <dl className="mt-4 grid gap-3 text-sm">
               <div>
-                <dt className="font-semibold text-clinic-ink">Tell the same story</dt>
-                <dd className="mt-1 leading-6 text-clinic-muted">{brief.ninetySecondStory}</dd>
+                <dt className="font-semibold text-[#3D2F26]">Tell the same story</dt>
+                <dd className="mt-1 font-medium leading-6 text-[#8A7A6E]">{brief.ninetySecondStory}</dd>
               </div>
               <div>
-                <dt className="font-semibold text-clinic-ink">Keep consistent</dt>
-                <dd className="mt-1 leading-6 text-clinic-muted">{brief.openUncertainties.slice(0, 3).join(", ")}</dd>
+                <dt className="font-semibold text-[#3D2F26]">Keep consistent</dt>
+                <dd className="mt-1 font-medium leading-6 text-[#8A7A6E]">{brief.openUncertainties.slice(0, 3).join(", ")}</dd>
               </div>
               <div>
-                <dt className="font-semibold text-clinic-ink">Sources checked</dt>
-                <dd className="mt-1 leading-6 text-clinic-muted">
+                <dt className="font-semibold text-[#3D2F26]">Sources checked</dt>
+                <dd className="mt-1 font-medium leading-6 text-[#8A7A6E]">
                   {brief.sourceCoverage.map((item) => `${item.section} (${item.sourceCount})`).join(", ")}
                 </dd>
               </div>
             </dl>
           </section>
 
-          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-            <h2 className="font-semibold text-clinic-ink">Markdown fallback</h2>
-            <p className="mt-2 text-sm leading-6 text-clinic-muted">
+          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+            <h2 className="font-semibold text-[#3D2F26]">Markdown fallback</h2>
+            <p className="mt-2 text-sm font-medium leading-6 text-[#8A7A6E]">
               The export package can produce this readable Markdown even when PDF rendering is unavailable.
             </p>
-            <pre className="mt-4 max-h-64 overflow-auto rounded-md bg-clinic-surface p-4 text-xs leading-5 text-clinic-ink">{markdown}</pre>
+            <pre className="mt-4 max-h-64 overflow-auto rounded-2xl bg-[#F8F1E7] p-4 text-xs leading-5 text-[#3D2F26]">{markdown}</pre>
           </section>
 
           <div className="grid gap-3">
             <Link
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#9CAD86] px-5 py-3 font-extrabold text-white transition hover:bg-[#879974]"
               href={`/cases/${caseId}/export?type=${selectedType}`}
             >
               <Download size={18} aria-hidden />
               Export
             </Link>
             <Link
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] transition hover:bg-[#F2ECE0]"
               href={`/cases/${caseId}/rehearsal?type=${selectedType}`}
             >
               <MessageSquareText size={18} aria-hidden />
@@ -208,11 +208,11 @@ function OutputBriefSection({
 }) {
   return (
     <section>
-      <h2 className="flex items-center gap-2 font-semibold text-clinic-ink">
+      <h2 className="flex items-center gap-2 font-semibold text-[#3D2F26]">
         <Icon size={18} aria-hidden />
         {title}
       </h2>
-      <div className="mt-3 text-sm leading-6 text-clinic-muted">{children}</div>
+      <div className="mt-3 text-sm font-medium leading-6 text-[#8A7A6E]">{children}</div>
     </section>
   );
 }
@@ -221,7 +221,7 @@ function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="grid gap-2">
       {items.map((item) => (
-        <li key={item} className="rounded-md border border-cyan-100 bg-white p-3">
+        <li key={item} className="rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-3">
           {item}
         </li>
       ))}

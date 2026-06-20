@@ -49,12 +49,12 @@ export default async function RehearsalPage({ params, searchParams }: RehearsalP
         body="The rehearsal uses missing-context questions only. It helps the user phrase their own history and redirects away from diagnosis, treatment, medication, surgery, and emergency-advice requests."
       />
 
-      <section className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-clinic-muted">
-          <span className="rounded-md bg-clinic-surface px-3 py-1 font-semibold text-clinic-ink">{mode.label}</span>
+      <section className="grid gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-[#8A7A6E]">
+          <span className="rounded-full bg-[#F8F1E7] px-3 py-1 font-semibold text-[#3D2F26]">{mode.label}</span>
           <span>One appointment-prep question at a time</span>
         </div>
-        <p className="max-w-3xl text-sm leading-6 text-clinic-muted">
+        <p className="max-w-3xl text-sm font-medium leading-6 text-[#8A7A6E]">
           This rehearsal saves typed practice answers for this case and keeps each response within appointment preparation. Browser speech recognition is optional.
         </p>
       </section>
@@ -63,14 +63,14 @@ export default async function RehearsalPage({ params, searchParams }: RehearsalP
 
       <div className="flex flex-wrap gap-3">
         <Link
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] transition hover:bg-[#F2ECE0]"
           href={`/cases/${caseId}/brief?type=${selectedType}`}
         >
           <ArrowLeft size={18} aria-hidden />
           Back to brief
         </Link>
         <Link
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#9CAD86] px-5 py-3 font-extrabold text-white transition hover:bg-[#879974]"
           href={`/cases/${caseId}/export?type=${selectedType}`}
         >
           <Download size={18} aria-hidden />

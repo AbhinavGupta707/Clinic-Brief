@@ -46,23 +46,23 @@ export default async function TimelinePage({ params }: { params: Promise<{ caseI
         <aside className="grid content-start gap-4">
           <PatternReviewPanel caseId={caseId} initialPatternCards={patternCards} />
 
-          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
             <div className="flex flex-wrap items-center gap-2">
               <Chip tone="primary">What changed</Chip>
               <Chip>Since last appointment</Chip>
             </div>
-            <h2 className="mt-4 text-xl font-semibold text-clinic-ink">Ready for the next conversation</h2>
-            <ul className="mt-4 grid gap-3 text-sm leading-6 text-clinic-muted">
+            <h2 className="mt-4 text-xl font-semibold text-[#3D2F26]">Ready for the next conversation</h2>
+            <ul className="mt-4 grid gap-3 text-sm font-medium leading-6 text-[#8A7A6E]">
               {brief.whatChangedSinceLastAppointment.map((item) => (
-                <li key={item} className="rounded-md border border-cyan-100 bg-clinic-surface p-3">
+                <li key={item} className="rounded-2xl border border-[#EFE2D2] bg-[#F8F1E7] p-3">
                   {item}
                 </li>
               ))}
             </ul>
           </section>
 
-          <section className="rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-            <h2 className="text-xl font-semibold text-clinic-ink">Open uncertainties</h2>
+          <section className="rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+            <h2 className="text-xl font-semibold text-[#3D2F26]">Open uncertainties</h2>
             <ul className="mt-4 grid gap-2">
               {brief.openUncertainties.map((item) => (
                 <li key={item}>

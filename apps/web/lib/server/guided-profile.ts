@@ -48,7 +48,7 @@ export async function parseGuidedProfileDraft(transcript: string): Promise<Guide
           preparingFor: "self or someone_else.",
           age: "Age or age range only if clearly stated.",
           gender: "Gender only if clearly stated; preserve user wording.",
-          aboutYou: "One short non-diagnostic line about the person, preferences, or access needs.",
+          aboutYou: "Only extra context, preferences, access needs, or useful background. Leave blank when the text only contains name, age, gender, or who the user is preparing for.",
           simpleLanguage: "true only if the user asks for simpler wording.",
           largerText: "true only if the user asks for larger text."
         },
@@ -57,7 +57,8 @@ export async function parseGuidedProfileDraft(transcript: string): Promise<Guide
           "No treatment advice.",
           "No medication change advice.",
           "No emergency triage.",
-          "Do not copy long health narratives into aboutYou."
+          "Do not copy the transcript into aboutYou.",
+          "Do not put name, age, gender, or preparing-for statements into aboutYou."
         ]
       }),
       schema: GuidedProfileDraftSchema
@@ -93,8 +94,8 @@ function parseGuidedProfileFallback(transcript: string): GuidedProfileDraft {
       firstName: firstNameMatch?.[1] ?? "",
       preparingFor,
       age: transcript.match(/\b(?:age|aged|i am|i'm)\s+(\d{1,3})\b/i)?.[1] ?? (/\bolder adult\b/i.test(transcript) ? "Older adult" : ""),
-      gender: transcript.match(/\b(?:gender is|i am a|i'm a)\s+(woman|man|female|male|non-binary|nonbinary)\b/i)?.[1] ?? "",
-      aboutYou: transcript.slice(0, 180),
+      gender: transcript.match(/\b(?:gender is|sex is|i am|i'm|and|,)\s+(?:a\s+)?(woman|man|female|male|non-binary|nonbinary)\b/i)?.[1] ?? "",
+      aboutYou: extractAdditionalProfileContext(transcript),
       simpleLanguage: /\bsimple language|plain english|plain language\b/i.test(transcript),
       largerText: /\blarger text|large text|bigger text\b/i.test(transcript)
     },
@@ -104,4 +105,8 @@ function parseGuidedProfileFallback(transcript: string): GuidedProfileDraft {
 
 function isFireworksConfigured(): boolean {
   return Boolean(process.env.FIREWORKS_API_KEY && process.env.FIREWORKS_MODEL);
+}
+
+function extractAdditionalProfileContext(text: string): string {
+  return text.match(/\b(?:about me|about them|additional(?:ly)?|also|one more thing|worth knowing)[:,]?\s+(.{8,180})$/i)?.[1]?.trim() ?? "";
 }

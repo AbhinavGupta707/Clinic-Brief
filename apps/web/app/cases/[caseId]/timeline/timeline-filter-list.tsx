@@ -29,7 +29,7 @@ export function TimelineFilterList({ timeline }: { timeline: TimelineEvent[] }) 
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 rounded-md border border-clinic-line bg-white p-3 shadow-soft" aria-label="Timeline filters">
+      <div className="flex flex-wrap gap-2 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-3 shadow-[0_10px_28px_rgba(61,47,38,0.08)]" aria-label="Timeline filters">
         {filters.map((label) => {
           const active = label === activeFilter;
 
@@ -38,8 +38,8 @@ export function TimelineFilterList({ timeline }: { timeline: TimelineEvent[] }) 
               key={label}
               type="button"
               aria-pressed={active}
-              className={`inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-semibold transition ${
-                active ? "bg-clinic-primary text-white" : "border border-clinic-line bg-white text-clinic-muted hover:bg-clinic-surface"
+              className={`inline-flex min-h-11 items-center justify-center rounded-full px-4 text-sm font-extrabold transition ${
+                active ? "bg-[#C8553D] text-white" : "border border-[#E4D8C8] bg-[#FFFDF8] text-[#5C4A3E] hover:bg-[#F2ECE0]"
               }`}
               onClick={() => setActiveFilter(label)}
             >
@@ -53,9 +53,9 @@ export function TimelineFilterList({ timeline }: { timeline: TimelineEvent[] }) 
         {filteredTimeline.map((event) => (
           <TimelineRow key={event.id} event={event} />
         ))}
-        {timeline.length === 0 ? <li className="rounded-md border border-dashed border-clinic-line bg-white p-5 text-sm text-clinic-muted">Confirm or edit extracted facts to build a timeline.</li> : null}
+        {timeline.length === 0 ? <li className="rounded-[1.25rem] border border-dashed border-[#E4D8C8] bg-[#FFFDF8] p-5 text-sm font-medium text-[#8A7A6E]">Confirm or edit extracted facts to build a timeline.</li> : null}
         {timeline.length > 0 && filteredTimeline.length === 0 ? (
-          <li className="rounded-md border border-dashed border-clinic-line bg-white p-5 text-sm text-clinic-muted">No {activeFilter.toLowerCase()} events in this timeline yet.</li>
+          <li className="rounded-[1.25rem] border border-dashed border-[#E4D8C8] bg-[#FFFDF8] p-5 text-sm font-medium text-[#8A7A6E]">No {activeFilter.toLowerCase()} events in this timeline yet.</li>
         ) : null}
       </ol>
     </>
