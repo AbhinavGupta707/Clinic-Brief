@@ -92,7 +92,7 @@ export default function NovusProofPage() {
               <li>GitHub install: use the official Novus dashboard flow and merge the generated install PR if Novus creates one.</li>
               <li>Session Replay: maximum privacy, with all inputs and text masked.</li>
               <li>Custom events: route and funnel counts only, using the sanitizer shown here.</li>
-              <li>AI Agent Tracking: leave disabled for rehearsal unless prompts and responses are masked before capture.</li>
+              <li>AI Agent Tracking: rehearsal events use masked lifecycle tokens only, never prompts, responses, messages, or case ids.</li>
             </ul>
           </section>
 

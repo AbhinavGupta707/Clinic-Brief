@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Events, isClinicEventName, sanitizeEventProps } from "./index";
+import { Events, isClinicEventName, sanitizeEventProps, trackAgentEvent } from "./index";
 
 describe("sanitizeEventProps", () => {
   it("keeps only allowed mode, brief type, confidence band, and count properties", () => {
@@ -58,6 +58,23 @@ describe("sanitizeEventProps", () => {
   it("validates registered event names", () => {
     expect(isClinicEventName(Events.BriefGenerated)).toBe(true);
     expect(isClinicEventName(Events.ReadbackStarted)).toBe(true);
+    expect(isClinicEventName(Events.PatternCardsGenerated)).toBe(true);
     expect(isClinicEventName("raw_health_text_sent")).toBe(false);
+  });
+
+  it("builds masked agent tracking metadata without raw prompt content", () => {
+    const metadata = trackAgentEvent("prompt", {
+      agentId: "test-agent",
+      conversationId: "anonymous-rehearsal",
+      messageId: "message-1",
+      content: "[rehearsal_answer]"
+    });
+
+    expect(metadata).toEqual({
+      agentId: "test-agent",
+      conversationId: "anonymous-rehearsal",
+      messageId: "message-1",
+      content: "[rehearsal_answer]"
+    });
   });
 });

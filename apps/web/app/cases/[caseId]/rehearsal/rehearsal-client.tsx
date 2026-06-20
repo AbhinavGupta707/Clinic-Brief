@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Mic, Send, ShieldAlert } from "lucide-react";
-import { Events, trackEvent } from "@clinicbrief/events";
+import { Events, trackAgentEvent, trackEvent } from "@clinicbrief/events";
 import type { ApiResponse, BriefType, MissingQuestion, RehearsalMessageResponse, RehearsalSession } from "@clinicbrief/types";
 import { useBrowserSpeechToText } from "../../../../lib/client/speech";
+
+const PENDO_REHEARSAL_AGENT_ID = "EPFDltHdy83kchFHgx3H8WdmRfQ";
 
 type Message = {
   role: "assistant" | "user";
@@ -27,6 +29,7 @@ export function RehearsalClient({
   const [draft, setDraft] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [trackingConversationId] = useState(createAnonymousTrackingId);
   const firstQuestion = questions[0]?.question ?? "What would you like to make sure you say at the appointment?";
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -53,6 +56,11 @@ export function RehearsalClient({
     if (payload?.ok && payload.data) {
       setSessionId(payload.data.sessionId);
       setMessages(mapSessionMessages(payload.data.session));
+      trackAgentEvent("agent_response", {
+        agentId: PENDO_REHEARSAL_AGENT_ID,
+        conversationId: trackingConversationId,
+        content: "[rehearsal_greeting]"
+      });
     }
   }
 
@@ -61,6 +69,12 @@ export function RehearsalClient({
     if (!answer) {
       return;
     }
+
+    trackAgentEvent("prompt", {
+      agentId: PENDO_REHEARSAL_AGENT_ID,
+      conversationId: trackingConversationId,
+      content: "[rehearsal_answer]"
+    });
 
     setIsSending(true);
     const payload = await sendRehearsalMessage(answer, sessionId);
@@ -74,6 +88,11 @@ export function RehearsalClient({
       setSessionId(payload.data.sessionId);
       setMessages(nextMessages);
       setCurrentQuestionIndex(Math.min(nextAnsweredCount, questions.length));
+      trackAgentEvent("agent_response", {
+        agentId: PENDO_REHEARSAL_AGENT_ID,
+        conversationId: trackingConversationId,
+        content: payload.data.blocked === true ? "[safety_redirect]" : "[rehearsal_feedback]"
+      });
     } else {
       setMessages((items) => [
         ...items,
@@ -247,4 +266,8 @@ function countAnsweredQuestions(messages: Message[]): number {
 
 function isSafetyRedirectMessage(message: Message | undefined): boolean {
   return message?.role === "assistant" && message.body.includes("I cannot diagnose or recommend treatment");
+}
+
+function createAnonymousTrackingId() {
+  return `anonymous-rehearsal-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`;
 }

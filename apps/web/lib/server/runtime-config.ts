@@ -194,15 +194,20 @@ function getStorageReadiness(env: Env): RuntimeServiceReadiness {
 }
 
 function getNovusReadiness(env: Env): RuntimeServiceReadiness {
-  const configuredEnv = presentNames(env, ["NEXT_PUBLIC_NOVUS_CLIENT_KEY", "NEXT_PUBLIC_PENDO_API_KEY", "NOVUS_API_KEY"]);
+  const publicEnv = ["NEXT_PUBLIC_NOVUS_CLIENT_KEY", "NEXT_PUBLIC_PENDO_API_KEY"];
+  const configuredPublicEnv = presentNames(env, publicEnv);
+  const configuredEnv = [...configuredPublicEnv, ...presentNames(env, ["NOVUS_API_KEY"])];
 
-  if (configuredEnv.length === 0) {
+  if (configuredPublicEnv.length === 0) {
     return {
       state: "unconfigured",
       backend: "novus_pendo",
-      summary: "Novus/Pendo is not installed. Safe local analytics sanitizer proof still works.",
-      configuredEnv: [],
-      missingEnv: ["NEXT_PUBLIC_NOVUS_CLIENT_KEY", "NEXT_PUBLIC_PENDO_API_KEY", "NOVUS_API_KEY"],
+      summary:
+        configuredEnv.length > 0
+          ? "A server-only Novus key is present, but the browser Novus/Pendo install is not active without a public client key or dashboard-generated snippet."
+          : "Novus/Pendo is not installed. Safe local analytics sanitizer proof still works.",
+      configuredEnv,
+      missingEnv: publicEnv,
       fallback: "local_event_sanitizer"
     };
   }

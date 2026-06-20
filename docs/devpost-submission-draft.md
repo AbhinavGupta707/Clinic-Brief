@@ -50,7 +50,7 @@ Patients often repeat their story to multiple clinicians and may forget importan
 
 ## Privacy and safety
 
-ClinicBrief asks for consent before processing health information, uses synthetic demo data by default, includes delete-all-data behavior, and filters analytics so Novus receives only mode, counts, confidence bands, and brief type. It does not send raw health text, source quotes, medication names, symptom names, document names, prompts, responses, transcripts, messages, or identifiers to analytics. Novus Session Replay should be configured to maximum privacy with all inputs and text masked; AI Agent Tracking for rehearsal should stay disabled unless prompts and responses are masked before capture.
+ClinicBrief asks for consent before processing health information, uses synthetic demo data by default, includes delete-all-data behavior, and filters analytics so Novus receives only mode, counts, confidence bands, and brief type. It does not send raw health text, source quotes, medication names, symptom names, document names, prompts, responses, transcripts, messages, or identifiers to analytics. Novus Session Replay should be configured to maximum privacy with all inputs and text masked; AI Agent Tracking is limited to masked rehearsal lifecycle events.
 
 Required safety copy appears on landing, brief, and export surfaces:
 

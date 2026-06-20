@@ -54,7 +54,7 @@ External steps:
 5. Keep `NOVUS_API_KEY` server-only if the dashboard provides one. Do not expose it in client components, screenshots, browser logs, or analytics props.
 6. The root layout includes `NovusPendoProvider`, which loads the Pendo agent only when a public key is present. It initializes an anonymous visitor id from local storage and a generic `clinicbrief-public-demo` account id. It does not use case ids, names, emails, document names, or health-content-derived identifiers.
 7. Configure Session Replay to maximum privacy with all inputs and text masked.
-8. Leave AI Agent Tracking disabled for rehearsal unless prompts and responses are masked before they reach Novus.
+8. Use AI Agent Tracking only with the masked rehearsal lifecycle events in `trackAgentEvent`; do not send prompts, responses, messages, transcripts, case ids, or source content to Novus.
 9. Deploy, open the public URL, and run the synthetic demo flow plus the live guided create flow.
 10. Visit `/novus-proof` and verify the listed events only include mode, counts, confidence bands, and brief type.
 11. Capture the Novus dashboard screenshot showing ClinicBrief activity and no raw health content.

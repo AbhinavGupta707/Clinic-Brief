@@ -14,12 +14,23 @@ export const Events = {
   RehearsalMessageSent: "rehearsal_message_sent",
   ReadbackStarted: "readback_started",
   PdfExported: "pdf_exported",
-  CaseDeleted: "case_deleted"
+  CaseDeleted: "case_deleted",
+  PatternCardsGenerated: "pattern_cards_generated",
+  PatternCardReviewed: "pattern_card_reviewed"
 } as const;
 
 export type ClinicEventName = (typeof Events)[keyof typeof Events];
 
 export type SanitizedEventProps = Record<string, string | number | boolean | null>;
+export type AgentEventType = "prompt" | "agent_response" | "user_reaction";
+export type SafeAgentContent = "[rehearsal_greeting]" | "[rehearsal_answer]" | "[rehearsal_feedback]" | "[safety_redirect]";
+
+export type SafeAgentEventMetadata = {
+  agentId: string;
+  conversationId: string;
+  messageId?: string;
+  content: SafeAgentContent;
+};
 
 export const allowedEventPropertyPolicy = {
   explicitKeys: ["mode", "briefType", "confidenceBand"],
@@ -60,6 +71,7 @@ const forbiddenPropertyPatterns = [
 type PendoAgent = {
   initialize?: (config: { visitor: { id: string }; account: { id: string } }) => void;
   track?: (name: string, props?: SanitizedEventProps) => void;
+  trackAgent?: (eventType: AgentEventType, metadata: Required<SafeAgentEventMetadata>) => void;
 };
 
 declare global {
@@ -118,6 +130,23 @@ export function trackEvent(name: ClinicEventName, props?: Record<string, unknown
   return safeProps;
 }
 
+export function trackAgentEvent(eventType: AgentEventType, metadata: SafeAgentEventMetadata) {
+  const safeMetadata: Required<SafeAgentEventMetadata> = {
+    agentId: metadata.agentId,
+    conversationId: metadata.conversationId,
+    messageId: metadata.messageId ?? createMessageId(),
+    content: metadata.content
+  };
+
+  if (typeof window === "undefined") {
+    return safeMetadata;
+  }
+
+  window.pendo?.trackAgent?.(eventType, safeMetadata);
+
+  return safeMetadata;
+}
+
 export const novusEventCoverage = [
   { event: Events.CaseCreated, purpose: "Case and consent funnel started", safeProps: sanitizeEventProps({ mode: "PREOP" }) },
   {
@@ -144,6 +173,16 @@ export const novusEventCoverage = [
     event: Events.CaseDeleted,
     purpose: "Delete flow completed or marked deleted",
     safeProps: sanitizeEventProps({ mode: "PREOP", deletedRecordCount: 1, deletedFileCount: 0 })
+  },
+  {
+    event: Events.PatternCardsGenerated,
+    purpose: "Source-backed pattern suggestions generated without fact text",
+    safeProps: sanitizeEventProps({ mode: "PREOP", patternCardCount: 2 })
+  },
+  {
+    event: Events.PatternCardReviewed,
+    purpose: "A pattern card review action was saved without card content or identifiers",
+    safeProps: sanitizeEventProps({ mode: "PREOP", reviewedPatternCardCount: 1 })
   }
 ];
 
@@ -169,3 +208,7 @@ export const sanitizedEventExample = {
     freeTextNarrative: "[filtered]"
   })
 };
+
+function createMessageId() {
+  return globalThis.crypto?.randomUUID?.() ?? `message-${Date.now()}`;
+}

@@ -50,4 +50,22 @@ describe("runtime readiness contract", () => {
     });
     expect(getReadinessHttpStatus(readiness)).toBe(503);
   });
+
+  it("does not treat a server-only Novus key as browser installation", () => {
+    const readiness = getRuntimeReadiness({
+      CLINICBRIEF_DATA_BACKEND: "memory",
+      CLINICBRIEF_STORAGE_BACKEND: "memory",
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      NOVUS_API_KEY: "private-novus-secret"
+    });
+
+    expect(readiness.ok).toBe(true);
+    expect(readiness.novus).toMatchObject({
+      state: "unconfigured",
+      backend: "novus_pendo",
+      configuredEnv: ["NOVUS_API_KEY"],
+      missingEnv: ["NEXT_PUBLIC_NOVUS_CLIENT_KEY", "NEXT_PUBLIC_PENDO_API_KEY"]
+    });
+    expect(JSON.stringify(readiness)).not.toContain("private-novus-secret");
+  });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { Events, trackEvent } from "@clinicbrief/events";
 import type { ApiResponse, GeneratePatternCardsResponse, PatternCard, UpdatePatternCardResponse } from "@clinicbrief/types";
 import { Check, Lightbulb, Loader2, Pencil, X } from "lucide-react";
 import { useState } from "react";
@@ -26,6 +27,7 @@ export function PatternReviewPanel({ caseId, initialPatternCards }: { caseId: st
 
       setCards(payload.data.patternCards);
       setStatus(payload.data.patternCards.length > 0 ? "Pattern cards are ready for review." : "No reviewed source-backed patterns are available yet.");
+      trackEvent(Events.PatternCardsGenerated, { patternCardCount: payload.data.patternCards.length });
     } finally {
       setIsGenerating(false);
     }
@@ -59,6 +61,7 @@ export function PatternReviewPanel({ caseId, initialPatternCards }: { caseId: st
     const updatedCard = payload.data.patternCard;
     setCards((current) => current.map((item) => (item.id === card.id ? updatedCard : item)));
     setStatus("Pattern card review saved.");
+    trackEvent(Events.PatternCardReviewed, { reviewedPatternCardCount: 1 });
   }
 
   function startEdit(card: PatternCard) {
