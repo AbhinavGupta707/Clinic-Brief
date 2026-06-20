@@ -85,6 +85,44 @@ describe("cases route", () => {
     );
   });
 
+  it("stores finalized guided conversation answers as source material", async () => {
+    const response = await POST(
+      makeJsonRequest({
+        title: "Alex's pre-op brief",
+        mode: "PREOP",
+        consent: true,
+        initialSource: {
+          text: "Guided appointment-prep conversation\nQuestion 1: What are you preparing for?\nAnswer 1: A synthetic appointment.",
+          sourceLabel: "Guided appointment-prep conversation",
+          captureMethod: "typed",
+          userReviewed: true,
+          storesAudio: false
+        }
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(addDocument).toHaveBeenCalledWith(
+      "case-created",
+      expect.objectContaining({
+        type: "TEXT_NOTE",
+        fileName: "story-dump-text.txt",
+        rawText: expect.stringContaining("Guided appointment-prep conversation"),
+        metadata: expect.objectContaining({
+          kind: "text_note",
+          sourceLabel: "Guided appointment-prep conversation",
+          userReviewed: true
+        })
+      }),
+      expect.objectContaining({
+        snippet: expect.stringContaining("Guided appointment-prep conversation"),
+        metadata: expect.objectContaining({
+          sourceLabel: "Guided appointment-prep conversation"
+        })
+      })
+    );
+  });
+
   it("rejects unreviewed or audio-storing initial source payloads", async () => {
     const response = await POST(
       makeJsonRequest({

@@ -33,6 +33,28 @@ describe("sanitizeEventProps", () => {
     expect(sanitizeEventProps({ documentCount: "3", answeredQuestionCount: -1 })).toEqual({});
   });
 
+  it("filters raw guided-flow health content while keeping counts", () => {
+    expect(
+      sanitizeEventProps({
+        mode: "GENERAL",
+        sourceCount: 2,
+        questionCount: 4,
+        answeredQuestionCount: 3,
+        firstName: "Alex",
+        rawAnswerText: "I have symptom details that should not go to analytics.",
+        medicationName: "private medicine name",
+        symptomName: "private symptom name",
+        voiceTranscript: "private browser transcript",
+        fileName: "private-referral.pdf"
+      })
+    ).toEqual({
+      mode: "GENERAL",
+      sourceCount: 2,
+      questionCount: 4,
+      answeredQuestionCount: 3
+    });
+  });
+
   it("validates registered event names", () => {
     expect(isClinicEventName(Events.BriefGenerated)).toBe(true);
     expect(isClinicEventName(Events.ReadbackStarted)).toBe(true);

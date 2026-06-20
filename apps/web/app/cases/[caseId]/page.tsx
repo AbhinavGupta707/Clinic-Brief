@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Activity, ArrowRight, ClipboardCheck, Download, FileText, HelpCircle, MessageSquareText, RotateCcw, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronDown, ClipboardList, Download, FileText, HelpCircle, MessageSquareText, RotateCcw, Settings, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { AppShell } from "../../../components/app-shell";
-import { Chip, DemoFlowNav, SectionHeader } from "../../../components/demo/demo-case-components";
+import { Chip, DemoFlowNav } from "../../../components/demo/demo-case-components";
 import { getClinicRepository } from "../../../lib/server/clinic-repository";
 import { buildCaseDashboardState, buildChronicLongitudinalDashboardState, getDashboardTimeline, getDefaultBriefType } from "./dashboard-state";
 
@@ -23,26 +24,23 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
   const isDemoCase = caseId === "sample-preop";
 
   return (
-    <AppShell eyebrow={`Case ${caseId}`} title={record.title}>
+    <AppShell eyebrow={isDemoCase ? "Synthetic outcome hub" : "Outcome hub"} title={record.title}>
       {isDemoCase ? <DemoFlowNav current="Dashboard" /> : null}
 
-      <section className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="grid gap-2">
+      <section className="grid gap-5 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+          <div className="grid gap-3">
             <div className="flex flex-wrap gap-2">
-              <Chip tone="primary">{record.mode.toLowerCase().replace("_", " ")} case</Chip>
+              <Chip tone="primary">{record.mode.toLowerCase()} case</Chip>
               <Chip tone={record.status === "DELETED" ? "warning" : "success"}>{record.status.toLowerCase().replace("_", " ")}</Chip>
               <Chip>{dashboard.counts.sourcePreviews || dashboard.counts.documents} sources</Chip>
             </div>
-            <h2 className="text-2xl font-semibold text-clinic-ink">Appointment preparation dashboard</h2>
-            <p className="max-w-3xl text-sm leading-6 text-clinic-muted">
-              This is the home base for this case: add sources, review extracted facts, check the timeline, prepare a brief, rehearse, and export.
+            <h2 className="max-w-3xl text-2xl font-semibold text-clinic-ink">Choose what you want to use next</h2>
+            <p className="max-w-3xl text-base leading-7 text-clinic-muted">
+              Your appointment pack stays under your control. Review key points first, then open the brief, timeline, questions, practice, or export when you are ready.
             </p>
           </div>
-          <Link
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
-            href={dashboard.nextAction.href}
-          >
+          <Link className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700" href={dashboard.nextAction.href}>
             {dashboard.nextAction.label}
             <ArrowRight size={18} aria-hidden />
           </Link>
@@ -50,269 +48,195 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
         <p className="rounded-md border border-cyan-100 bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted">{dashboard.nextAction.reason}</p>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-3">
-        <MetricCard label="Facts" value={dashboard.counts.facts} detail={`${dashboard.counts.factsNeedingReview} need review`} />
-        <MetricCard label="Open questions" value={dashboard.counts.openQuestions} detail="For appointment prep" />
-        <MetricCard label="Briefs" value={dashboard.counts.briefs} detail={latestBrief ? "Draft available" : "Ready after review"} />
+      <section aria-label="Outcome actions" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <OutcomeCard
+          body={latestBrief ? "Open the reviewed appointment-ready summary." : "Generate this after confirming key points."}
+          href={`/cases/${caseId}/brief?type=${briefType}`}
+          icon={FileText}
+          title="Appointment Brief"
+          tone="primary"
+        />
+        <OutcomeCard body={`${timeline.length} timeline item${timeline.length === 1 ? "" : "s"} organized from reviewed facts.`} href={`/cases/${caseId}/timeline`} icon={CalendarDays} title="Timeline" />
+        <OutcomeCard body={`${dashboard.openQuestions.length} preparation prompt${dashboard.openQuestions.length === 1 ? "" : "s"} to consider before the visit.`} href={`/cases/${caseId}/brief?type=${briefType}#questions`} icon={HelpCircle} title="Questions to Ask" />
+        <OutcomeCard body="Practice explaining the story one appointment-prep question at a time." href={`/cases/${caseId}/rehearsal?type=${briefType}`} icon={MessageSquareText} title="Practice the Appointment" />
+        <OutcomeCard body="Download, copy, print, or use the fallback export once you have reviewed the content." href={`/cases/${caseId}/export?type=${briefType}`} icon={Download} title="Export / Share" tone="success" />
+        <OutcomeCard body="Confirm, edit, or hide extracted key points before they shape outputs." href={`/cases/${caseId}/review`} icon={ClipboardList} title="Review Key Points" />
+      </section>
+
+      <section className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-clinic-ink">
+          <ShieldCheck size={19} aria-hidden />
+          Preparation only
+        </h2>
+        <p className="text-sm leading-6 text-clinic-muted">
+          ClinicBrief organizes information you provide so you can prepare for appointments. It does not diagnose, recommend treatment, or replace medical advice. Review everything before sharing it with a clinician.
+        </p>
       </section>
 
       {chronicDashboard ? (
-        <DashboardPanel icon={Activity} title="Longitudinal view">
-          <div className="grid gap-4">
-            <div className="grid gap-3 rounded-md border border-cyan-100 bg-clinic-surface p-4 md:grid-cols-[1fr_auto] md:items-start">
-              <div className="grid gap-2">
-                <div className="flex flex-wrap gap-2">
-                  <Chip tone={chronicDashboard.readyForBrief.ready ? "success" : "warning"}>
-                    {chronicDashboard.readyForBrief.ready ? "ready for brief" : "review needed"}
-                  </Chip>
-                  <Chip>{chronicDashboard.readyForBrief.reviewedFactCount} reviewed facts</Chip>
-                </div>
-                <h3 className="text-base font-semibold text-clinic-ink">Ongoing history for this appointment</h3>
-                <p className="text-sm leading-6 text-clinic-muted">{chronicDashboard.readyForBrief.reason}</p>
-                {chronicDashboard.appointmentGoal ? (
-                  <p className="rounded-md border border-cyan-100 bg-white p-3 text-sm leading-6 text-clinic-muted">
-                    <span className="font-semibold text-clinic-ink">Current appointment goal: </span>
-                    {chronicDashboard.appointmentGoal}
-                  </p>
-                ) : null}
-              </div>
-              <Link
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-clinic-primaryDark"
-                href={chronicDashboard.readyForBrief.href}
-              >
-                {chronicDashboard.readyForBrief.ready ? "Open brief" : "Continue"}
-                <ArrowRight size={17} aria-hidden />
-              </Link>
+        <details className="group rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-clinic-ink">Longitudinal summary</h2>
+              <p className="mt-1 text-sm leading-6 text-clinic-muted">Collapsed by default for chronic cases. Open when you want the ongoing-history view.</p>
             </div>
-
-            {chronicDashboard.emptyState ? (
-              <div className="grid gap-3 rounded-md border border-dashed border-clinic-line p-4">
-                <div>
-                  <h3 className="font-semibold text-clinic-ink">{chronicDashboard.emptyState.title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-clinic-muted">{chronicDashboard.emptyState.body}</p>
-                </div>
-                <Link
-                  className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-3 text-sm font-semibold text-clinic-ink transition hover:bg-cyan-50"
-                  href={chronicDashboard.emptyState.primaryHref}
-                >
-                  {chronicDashboard.emptyState.primaryLabel}
-                  <ArrowRight size={17} aria-hidden />
-                </Link>
+            <ChevronDown aria-hidden className="h-5 w-5 text-clinic-muted transition group-open:rotate-180" />
+          </summary>
+          <div className="mt-5 grid gap-4">
+            <div className="rounded-md border border-cyan-100 bg-clinic-surface p-4">
+              <div className="flex flex-wrap gap-2">
+                <Chip tone={chronicDashboard.readyForBrief.ready ? "success" : "warning"}>{chronicDashboard.readyForBrief.ready ? "ready for brief" : "review needed"}</Chip>
+                <Chip>{chronicDashboard.readyForBrief.reviewedFactCount} reviewed facts</Chip>
               </div>
-            ) : null}
-
+              <p className="mt-3 text-sm leading-6 text-clinic-muted">{chronicDashboard.readyForBrief.reason}</p>
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
               {chronicDashboard.sections.map((section) => (
-                <div key={section.id} className="grid content-start gap-3 rounded-md border border-cyan-100 p-4">
-                  <h3 className="text-sm font-semibold text-clinic-ink">{section.title}</h3>
+                <article className="rounded-md border border-cyan-100 p-4" key={section.id}>
+                  <h3 className="font-semibold text-clinic-ink">{section.title}</h3>
                   {section.items.length > 0 ? (
-                    <ul className="grid gap-2">
+                    <ul className="mt-3 grid gap-2">
                       {section.items.map((item) => (
-                        <li key={item.id} className="rounded-md bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted">
+                        <li className="rounded-md bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted" key={item.id}>
                           {item.text}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm leading-6 text-clinic-muted">Reviewed facts for this section will appear here.</p>
+                    <p className="mt-3 text-sm leading-6 text-clinic-muted">Reviewed facts for this section will appear here.</p>
                   )}
-                </div>
+                </article>
               ))}
             </div>
-
-            <div className="grid gap-3 lg:grid-cols-2">
-              <div className="grid content-start gap-3 rounded-md border border-cyan-100 p-4">
-                <h3 className="text-sm font-semibold text-clinic-ink">Open uncertainties and questions to ask</h3>
-                {chronicDashboard.openUncertainties.length > 0 || chronicDashboard.openQuestions.length > 0 ? (
-                  <ul className="grid gap-2">
-                    {chronicDashboard.openUncertainties.map((item) => (
-                      <li key={item.id} className="rounded-md bg-clinic-surface p-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Chip tone="warning">uncertainty</Chip>
-                          <Chip>reviewed</Chip>
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-clinic-muted">{item.text}</p>
-                      </li>
-                    ))}
-                    {chronicDashboard.openQuestions.map((question) => (
-                      <li key={question.id} className="rounded-md bg-clinic-surface p-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Chip tone={question.priority === "high" ? "warning" : "primary"}>{question.priority} priority</Chip>
-                        </div>
-                        <p className="mt-2 text-sm font-semibold leading-6 text-clinic-ink">{question.question}</p>
-                        <p className="mt-1 text-sm leading-6 text-clinic-muted">{question.whyItMattersForAppointment}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm leading-6 text-clinic-muted">Questions will appear after extraction or when the user adds clinician questions.</p>
-                )}
-              </div>
-
-              <div className="grid content-start gap-3 rounded-md border border-cyan-100 p-4">
-                <h3 className="text-sm font-semibold text-clinic-ink">Needs review before it can shape summaries</h3>
-                {chronicDashboard.needsReview.length > 0 ? (
-                  <ul className="grid gap-2">
-                    {chronicDashboard.needsReview.map((item) => (
-                      <li key={item.id} className="rounded-md bg-amber-50 p-3 text-sm leading-6 text-clinic-muted">
-                        {item.text}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm leading-6 text-clinic-muted">No unreviewed facts are waiting. Rejected facts are not shown here or in summaries.</p>
-                )}
-                <Link
-                  className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-3 text-sm font-semibold text-clinic-ink transition hover:bg-cyan-50"
-                  href={`/cases/${caseId}/review`}
-                >
-                  Review facts
-                  <ArrowRight size={17} aria-hidden />
-                </Link>
-              </div>
-            </div>
           </div>
-        </DashboardPanel>
+        </details>
       ) : null}
 
-      <section className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-        <SectionHeader
-          eyebrow="Preparation status"
-          title="Where this case is in the workflow"
-          body="Each step is derived from the current case data. Blocked steps become available as sources and reviewed facts are added."
-        />
-        <ol className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {dashboard.workflow.map((item) => (
-            <li key={item.id} className="grid min-h-28 gap-3 rounded-md border border-cyan-100 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="font-semibold text-clinic-ink">{item.label}</h3>
-                <WorkflowBadge state={item.state} />
-              </div>
-              <p className="text-sm leading-6 text-clinic-muted">
-                {item.count ?? 0} {item.count === 1 ? "item" : "items"}
-                {item.needsUserReview ? " need user review" : ""}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
-        <section className="grid content-start gap-5">
-          <DashboardPanel icon={ClipboardCheck} title="Top points to raise">
-            {dashboard.topPointsToRaise.length > 0 ? (
-              <ul className="grid gap-3">
-                {dashboard.topPointsToRaise.map((item) => (
-                  <li key={item.id} className="rounded-md border border-cyan-100 bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted">
-                    <span className="font-semibold text-clinic-ink">{item.userReviewed ? "Reviewed: " : "Check: "}</span>
-                    {item.text}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState>Add notes or documents, then extract facts to see the main points for the appointment.</EmptyState>
-            )}
-          </DashboardPanel>
-
-          <DashboardPanel icon={RotateCcw} title="What changed since last appointment">
-            {dashboard.whatChangedSinceLastAppointment.length > 0 ? (
-              <ul className="grid gap-3">
-                {dashboard.whatChangedSinceLastAppointment.map((item) => (
-                  <li key={item.id} className="rounded-md border border-cyan-100 p-3 text-sm leading-6 text-clinic-muted">
-                    {item.text}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState>Reviewed facts or timeline entries will appear here when the case has enough context.</EmptyState>
-            )}
-          </DashboardPanel>
-
-          <DashboardPanel icon={HelpCircle} title="Open questions">
-            {dashboard.openQuestions.length > 0 ? (
-              <ul className="grid gap-3">
-                {dashboard.openQuestions.map((question) => (
-                  <li key={question.id} className="rounded-md border border-cyan-100 p-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Chip tone={question.priority === "high" ? "warning" : "primary"}>{question.priority} priority</Chip>
-                      <Chip>{question.answered ? "answered" : "open"}</Chip>
-                    </div>
-                    <p className="mt-3 text-sm font-semibold leading-6 text-clinic-ink">{question.question}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState>Missing-context questions will appear after extraction or in a generated brief.</EmptyState>
-            )}
-          </DashboardPanel>
-        </section>
-
-        <aside className="grid content-start gap-5">
-          <DashboardPanel icon={FileText} title="Source coverage">
-            <ul className="grid gap-3">
-              {dashboard.sourceCoverage.map((item) => (
-                <li key={`${item.section}-${item.sourceCount}`} className="flex items-start justify-between gap-3 rounded-md border border-cyan-100 p-3 text-sm">
-                  <span className="font-semibold text-clinic-ink">{item.section}</span>
-                  <Chip tone={item.weakOrMissingEvidence ? "warning" : "success"}>{item.sourceCount} sources</Chip>
-                </li>
-              ))}
-            </ul>
-          </DashboardPanel>
-
-          <DashboardPanel icon={RotateCcw} title="Timeline summary">
-            {timeline.length > 0 ? (
-              <ol className="grid gap-3">
-                {timeline.slice(0, 4).map((event) => (
-                  <li key={event.id} className="rounded-md border border-cyan-100 p-3">
-                    <p className="text-xs font-semibold uppercase text-clinic-primary">{event.date ?? event.approximateDate ?? "Date not provided"}</p>
-                    <p className="mt-1 text-sm font-semibold text-clinic-ink">{event.title}</p>
-                    <p className="mt-1 text-sm leading-6 text-clinic-muted">{event.description}</p>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <EmptyState>The timeline appears after facts are confirmed or edited in review.</EmptyState>
-            )}
-          </DashboardPanel>
-
-          <DashboardPanel icon={ShieldCheck} title="Preparation only">
-            <p className="text-sm leading-6 text-clinic-muted">
-              ClinicBrief organizes information you provide so you can prepare for appointments. It does not diagnose, recommend treatment, or replace medical advice. Review everything before sharing it with a clinician.
-            </p>
-          </DashboardPanel>
-
-          <div className="grid gap-3">
-            <Link
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
-              href={`/cases/${caseId}/brief?type=${briefType}`}
-            >
-              <FileText size={18} aria-hidden />
-              Open brief
-            </Link>
-            <Link
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
-              href={`/cases/${caseId}/rehearsal?type=${briefType}`}
-            >
-              <MessageSquareText size={18} aria-hidden />
-              Rehearse
-            </Link>
-            <Link
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white transition hover:bg-clinic-primaryDark"
-              href={`/cases/${caseId}/export?type=${briefType}`}
-            >
-              <Download size={18} aria-hidden />
-              Export
-            </Link>
+      <details className="group rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-clinic-ink">Preparation details</h2>
+            <p className="mt-1 text-sm leading-6 text-clinic-muted">Status, source coverage, top points, and open questions are here when you need them.</p>
           </div>
-        </aside>
+          <ChevronDown aria-hidden className="h-5 w-5 text-clinic-muted transition group-open:rotate-180" />
+        </summary>
+        <div className="mt-5 grid gap-5">
+          <div className="grid gap-3 md:grid-cols-3">
+            <MetricCard label="Facts" value={dashboard.counts.facts} detail={`${dashboard.counts.factsNeedingReview} need review`} />
+            <MetricCard label="Open questions" value={dashboard.counts.openQuestions} detail="For appointment prep" />
+            <MetricCard label="Briefs" value={dashboard.counts.briefs} detail={latestBrief ? "Draft available" : "Ready after review"} />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <DetailPanel icon={ClipboardList} title="Top points to raise">
+              {dashboard.topPointsToRaise.length > 0 ? (
+                <ul className="grid gap-3">
+                  {dashboard.topPointsToRaise.map((item) => (
+                    <li key={item.id} className="rounded-md border border-cyan-100 bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted">
+                      <span className="font-semibold text-clinic-ink">{item.userReviewed ? "Reviewed: " : "Check: "}</span>
+                      {item.text}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState>Add notes or documents, then extract facts to see the main points for the appointment.</EmptyState>
+              )}
+            </DetailPanel>
+
+            <DetailPanel icon={RotateCcw} title="What changed since last appointment">
+              {dashboard.whatChangedSinceLastAppointment.length > 0 ? (
+                <ul className="grid gap-3">
+                  {dashboard.whatChangedSinceLastAppointment.map((item) => (
+                    <li key={item.id} className="rounded-md border border-cyan-100 p-3 text-sm leading-6 text-clinic-muted">
+                      {item.text}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState>Reviewed facts or timeline entries will appear here when the case has enough context.</EmptyState>
+              )}
+            </DetailPanel>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <DetailPanel icon={HelpCircle} title="Open questions">
+              {dashboard.openQuestions.length > 0 ? (
+                <ul className="grid gap-3">
+                  {dashboard.openQuestions.map((question) => (
+                    <li key={question.id} className="rounded-md border border-cyan-100 p-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Chip tone={question.priority === "high" ? "warning" : "primary"}>{question.priority} priority</Chip>
+                        <Chip>{question.answered ? "answered" : "open"}</Chip>
+                      </div>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-clinic-ink">{question.question}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState>Missing-context questions will appear after extraction or in a generated brief.</EmptyState>
+              )}
+            </DetailPanel>
+
+            <DetailPanel icon={FileText} title="Source coverage">
+              <ul className="grid gap-3">
+                {dashboard.sourceCoverage.map((item) => (
+                  <li key={`${item.section}-${item.sourceCount}`} className="flex items-start justify-between gap-3 rounded-md border border-cyan-100 p-3 text-sm">
+                    <span className="font-semibold text-clinic-ink">{item.section}</span>
+                    <Chip tone={item.weakOrMissingEvidence ? "warning" : "success"}>{item.sourceCount} sources</Chip>
+                  </li>
+                ))}
+              </ul>
+            </DetailPanel>
+          </div>
+        </div>
+      </details>
+
+      <div className="flex flex-wrap gap-3">
+        <Link className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href={`/cases/${caseId}/settings`}>
+          <Settings size={18} aria-hidden />
+          Settings and delete
+        </Link>
+        <Link className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/privacy">
+          Privacy
+        </Link>
       </div>
     </AppShell>
   );
 }
 
+function OutcomeCard({
+  body,
+  href,
+  icon: Icon,
+  title,
+  tone = "neutral"
+}: {
+  body: string;
+  href: string;
+  icon: typeof FileText;
+  title: string;
+  tone?: "primary" | "success" | "neutral";
+}) {
+  const iconClassName = tone === "success" ? "bg-emerald-50 text-emerald-700" : tone === "primary" ? "bg-clinic-surface text-clinic-primary" : "bg-white text-clinic-primary";
+
+  return (
+    <Link className="grid min-h-48 content-start gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-clinic-primary hover:bg-cyan-50" href={href}>
+      <span className={`flex h-12 w-12 items-center justify-center rounded-md ${iconClassName}`}>
+        <Icon size={24} aria-hidden />
+      </span>
+      <span className="text-xl font-semibold text-clinic-ink">{title}</span>
+      <span className="text-sm leading-6 text-clinic-muted">{body}</span>
+      <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-clinic-primary">
+        Open
+        <ArrowRight size={16} aria-hidden />
+      </span>
+    </Link>
+  );
+}
+
 function MetricCard({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
-    <div className="rounded-md border border-clinic-line bg-white p-4 shadow-soft">
+    <div className="rounded-md border border-clinic-line bg-white p-4">
       <p className="text-sm font-semibold text-clinic-primary">{label}</p>
       <p className="mt-2 text-3xl font-semibold text-clinic-ink">{value}</p>
       <p className="mt-1 text-sm text-clinic-muted">{detail}</p>
@@ -320,31 +244,18 @@ function MetricCard({ label, value, detail }: { label: string; value: number; de
   );
 }
 
-function DashboardPanel({
-  icon: Icon,
-  title,
-  children
-}: {
-  icon: typeof FileText;
-  title: string;
-  children: React.ReactNode;
-}) {
+function DetailPanel({ icon: Icon, title, children }: { icon: typeof FileText; title: string; children: ReactNode }) {
   return (
-    <section className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-clinic-ink">
-        <Icon size={19} aria-hidden />
+    <section className="grid content-start gap-4 rounded-md border border-cyan-100 p-4">
+      <h3 className="flex items-center gap-2 text-base font-semibold text-clinic-ink">
+        <Icon size={18} aria-hidden />
         {title}
-      </h2>
+      </h3>
       {children}
     </section>
   );
 }
 
-function WorkflowBadge({ state }: { state: string }) {
-  const tone = state === "done" ? "success" : state === "ready" ? "primary" : state === "needs_input" ? "warning" : "neutral";
-  return <Chip tone={tone}>{state.replace("_", " ")}</Chip>;
-}
-
-function EmptyState({ children }: { children: React.ReactNode }) {
+function EmptyState({ children }: { children: ReactNode }) {
   return <p className="rounded-md border border-dashed border-clinic-line p-4 text-sm leading-6 text-clinic-muted">{children}</p>;
 }

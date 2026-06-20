@@ -53,6 +53,9 @@ export default function PreopDemoPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <Link className="inline-flex min-h-11 items-center justify-center rounded-md bg-clinic-success px-5 py-3 font-semibold text-white hover:bg-emerald-700" href="/cases/new?demo=guided">
+          Try guided demo
+        </Link>
         <DemoCta href="/cases/sample-preop/review">Review extracted facts</DemoCta>
         <Link className="inline-flex min-h-11 items-center justify-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/cases/sample-preop/timeline">
           View timeline

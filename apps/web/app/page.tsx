@@ -34,6 +34,12 @@ export default function HomePage() {
                 Try sample pre-op case <ArrowRight size={18} aria-hidden />
               </Link>
               <Link
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-clinic-primary bg-white px-5 py-3 font-semibold text-clinic-primary transition hover:bg-cyan-50"
+                href="/cases/new?demo=guided"
+              >
+                Try guided demo
+              </Link>
+              <Link
                 className="inline-flex min-h-11 items-center justify-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink transition hover:bg-cyan-50"
                 href="/cases/new"
               >

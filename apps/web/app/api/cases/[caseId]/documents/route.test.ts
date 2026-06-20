@@ -88,6 +88,22 @@ describe("case documents route", () => {
     expect(payload.ok).toBe(false);
     expect(addDocument).not.toHaveBeenCalled();
   });
+
+  it("keeps the synthetic demo case read-only", async () => {
+    mockedGetClinicRepository.mockResolvedValue({
+      getCase: vi.fn(async () => ({ ...makeCaseRecord(), id: "sample-preop" })),
+      addDocument
+    } as unknown as Awaited<ReturnType<typeof getClinicRepository>>);
+
+    const response = await POST(makeJsonRequest({ type: "TEXT_NOTE", text: "Real health text must not be added to the demo." }), {
+      params: Promise.resolve({ caseId: "sample-preop" })
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(payload.ok).toBe(false);
+    expect(addDocument).not.toHaveBeenCalled();
+  });
 });
 
 function makeJsonRequest(body: unknown): Request {
