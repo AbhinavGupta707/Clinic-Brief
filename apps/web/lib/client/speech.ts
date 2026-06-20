@@ -44,17 +44,29 @@ export function useBrowserSpeechToText({ onTranscript }: { onTranscript: (text: 
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<ClinicSpeechRecognition | null>(null);
   const lastTranscriptRef = useRef("");
+  const restartTimerRef = useRef<number | null>(null);
+  const shouldListenRef = useRef(false);
+  const seenTranscriptRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     setCapability(getBrowserSpeechCapability());
 
     return () => {
+      shouldListenRef.current = false;
+      if (restartTimerRef.current) {
+        window.clearTimeout(restartTimerRef.current);
+      }
       recognitionRef.current?.abort();
       recognitionRef.current = null;
     };
   }, []);
 
   const stopListening = useCallback(() => {
+    shouldListenRef.current = false;
+    if (restartTimerRef.current) {
+      window.clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     recognitionRef.current?.stop();
     setIsListening(false);
   }, []);
@@ -70,43 +82,78 @@ export function useBrowserSpeechToText({ onTranscript }: { onTranscript: (text: 
       return;
     }
 
+    shouldListenRef.current = true;
     lastTranscriptRef.current = "";
+    seenTranscriptRef.current = new Set();
 
-    const recognition = new Recognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = navigator.language || "en-GB";
-    recognition.onresult = (event) => {
-      const finalParts: string[] = [];
+    const SpeechRecognitionConstructor = Recognition;
 
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const result = event.results[index];
+    function startRecognitionSession() {
+      const recognition = new SpeechRecognitionConstructor();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = navigator.language || "en-GB";
+      recognition.onresult = (event) => {
+        const finalParts: string[] = [];
 
-        if (result?.isFinal) {
-          finalParts.push(result[0]?.transcript ?? "");
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const result = event.results[index];
+
+          if (result?.isFinal) {
+            finalParts.push(result[0]?.transcript ?? "");
+          }
         }
-      }
 
-      const transcript = finalParts.join(" ").replace(/\s+/g, " ").trim();
+        const transcript = finalParts.join(" ").replace(/\s+/g, " ").trim();
+        const normalized = normalizeTranscript(transcript);
 
-      if (transcript && transcript !== lastTranscriptRef.current) {
+        if (!transcript || !normalized || seenTranscriptRef.current.has(normalized)) {
+          return;
+        }
+
+        seenTranscriptRef.current.add(normalized);
+        onTranscript(getTranscriptDelta(lastTranscriptRef.current, transcript));
         lastTranscriptRef.current = transcript;
-        onTranscript(transcript);
-      }
-    };
-    recognition.onerror = (event) => {
-      setError(event.error ? `Speech recognition stopped: ${event.error}. Typed notes still work.` : "Speech recognition stopped. Typed notes still work.");
-      setIsListening(false);
-    };
-    recognition.onend = () => {
-      setIsListening(false);
-    };
+      };
+      recognition.onerror = (event) => {
+        if (event.error === "no-speech" && shouldListenRef.current) {
+          return;
+        }
 
-    recognitionRef.current?.abort();
-    recognitionRef.current = recognition;
-    recognition.start();
-    setCapability("supported");
-    setIsListening(true);
+        shouldListenRef.current = false;
+        setError(event.error ? `Speech recognition stopped: ${event.error}. Typed notes still work.` : "Speech recognition stopped. Typed notes still work.");
+        setIsListening(false);
+      };
+      recognition.onend = () => {
+        recognitionRef.current = null;
+
+        if (!shouldListenRef.current) {
+          setIsListening(false);
+          return;
+        }
+
+        restartTimerRef.current = window.setTimeout(() => {
+          if (shouldListenRef.current) {
+            startRecognitionSession();
+          }
+        }, 250);
+      };
+
+      recognitionRef.current?.abort();
+      recognitionRef.current = recognition;
+
+      try {
+        recognition.start();
+        setCapability("supported");
+        setIsListening(true);
+      } catch {
+        shouldListenRef.current = false;
+        setIsListening(false);
+        setError("Speech recognition could not start. Typed notes still work.");
+      }
+    }
+
+    startRecognitionSession();
   }, [onTranscript]);
 
   return {
@@ -116,6 +163,25 @@ export function useBrowserSpeechToText({ onTranscript }: { onTranscript: (text: 
     startListening,
     stopListening
   };
+}
+
+function normalizeTranscript(text: string): string {
+  return text.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").replace(/\s+/g, " ").trim();
+}
+
+function getTranscriptDelta(previous: string, next: string): string {
+  const cleanPrevious = previous.trim();
+  const cleanNext = next.trim();
+
+  if (!cleanPrevious) {
+    return cleanNext;
+  }
+
+  if (cleanNext.toLowerCase().startsWith(cleanPrevious.toLowerCase())) {
+    return cleanNext.slice(cleanPrevious.length).trim();
+  }
+
+  return cleanNext;
 }
 
 export function getBrowserTextToSpeechCapability(): BrowserSpeechCapability {

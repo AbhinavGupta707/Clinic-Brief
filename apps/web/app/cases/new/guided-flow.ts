@@ -67,6 +67,53 @@ export function labelForAppointmentType(type: AppointmentPrepType): string {
   return appointmentTypeOptions.find((option) => option.id === type)?.label ?? "Upcoming appointment";
 }
 
+export function getInitialGuidedQuestion(type: AppointmentPrepType): string {
+  return getGuidedQuestionAt(type, 0);
+}
+
+export function getGuidedQuestionAt(type: AppointmentPrepType, index: number): string {
+  const questions: Record<AppointmentPrepType, string[]> = {
+    upcoming: [
+      "What do you most want to make sure the clinician understands at this appointment?",
+      "When did this story begin, or what date should the timeline start from?",
+      "What has changed since the last appointment or update?",
+      "Which documents, notes, or results do you want to bring into the appointment pack?",
+      "What question do you most want to remember to ask?"
+    ],
+    chronic: [
+      "What is the main thing you want this chronic review to cover?",
+      "What is your usual baseline, in your own words?",
+      "What has changed recently compared with that baseline?",
+      "How is this affecting daily activities, work, study, sleep, mobility, or caring responsibilities?",
+      "What question do you most want to ask at the review?"
+    ],
+    symptoms: [
+      "What changed, and when did you first notice it?",
+      "What does a typical day or episode look like in your own words?",
+      "What details are easy to forget when you are in the appointment?",
+      "What documents, notes, or photos do you want to bring in?",
+      "What question do you most want to ask the clinician?"
+    ],
+    preop: [
+      "What operation or pre-op appointment are you preparing for, if you know?",
+      "What medicines, supplements, allergies, or previous reactions do you want listed for the team to confirm?",
+      "Have you had a previous anaesthetic, operation, or hospital stay you want to mention?",
+      "What transport, home support, or practical recovery details do you want to remember?",
+      "What question do you most want to ask before the procedure?"
+    ],
+    medication: [
+      "What do you want the clinician to understand about your current medication list?",
+      "Are there medicines, supplements, allergies, or reactions you want listed as user-reported notes?",
+      "What medication questions do you want to ask the clinician, without asking ClinicBrief for advice?",
+      "Which labels, letters, portal notes, or pharmacy records could help make this list accurate?",
+      "What detail is easiest to forget during medication appointments?"
+    ]
+  };
+
+  const list = questions[type] ?? questions.upcoming;
+  return list[Math.min(Math.max(index, 0), list.length - 1)] ?? list[0];
+}
+
 export function buildGuidedConversationSourceText({
   profile,
   appointmentType,

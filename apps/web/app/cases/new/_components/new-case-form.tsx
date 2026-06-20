@@ -24,6 +24,8 @@ import { useBrowserSpeechToText } from "../../../../lib/client/speech";
 import {
   appointmentTypeOptions,
   buildGuidedConversationSourceText,
+  getGuidedQuestionAt,
+  getInitialGuidedQuestion,
   labelForAppointmentType,
   makeGuidedInitialSource,
   mapAppointmentTypeToMode,
@@ -71,14 +73,6 @@ const demoProfile: GuidedProfile = {
 };
 
 const demoAnswers: ConversationAnswer[] = [
-  {
-    question: "What operation or pre-op appointment are you preparing for, if you know?",
-    answer: "Synthetic answer: planned procedure with a pre-op nurse call."
-  },
-  {
-    question: "What medicines, supplements, allergies, or previous reactions do you want listed for the team to confirm?",
-    answer: "Synthetic answer: medication list, allergy note, and previous anaesthetic question are included in the demo documents."
-  }
 ];
 
 export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
@@ -88,7 +82,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
   const [profile, setProfile] = useState<GuidedProfile>(isGuidedDemo ? demoProfile : emptyProfile);
   const [appointmentType, setAppointmentType] = useState<AppointmentPrepType>(isGuidedDemo ? "preop" : "upcoming");
   const [consent, setConsent] = useState(isGuidedDemo);
-  const [question, setQuestion] = useState(isGuidedDemo ? demoAnswers[0]?.question ?? "" : "");
+  const [question, setQuestion] = useState(isGuidedDemo ? getInitialGuidedQuestion("preop") : "");
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [answers, setAnswers] = useState<ConversationAnswer[]>(isGuidedDemo ? demoAnswers : []);
   const [conversationComplete, setConversationComplete] = useState(isGuidedDemo);
@@ -130,16 +124,16 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
   const currentQuestionNumber = Math.min(answers.length + 1, maxGuidedQuestions);
 
   useEffect(() => {
-    if (!question && stepIndex === 3 && answers.length === 0 && !isQuestionLoading && !isGuidedDemo) {
-      void loadNextQuestion("");
+    if (!question && stepIndex === 3 && answers.length === 0 && !isQuestionLoading) {
+      setQuestion(getInitialGuidedQuestion(appointmentType));
     }
-  }, [answers.length, question, stepIndex, isQuestionLoading, isGuidedDemo]);
+  }, [answers.length, appointmentType, question, stepIndex, isQuestionLoading]);
 
   useEffect(() => {
     setProfile(isGuidedDemo ? demoProfile : emptyProfile);
     setAppointmentType(isGuidedDemo ? "preop" : "upcoming");
     setConsent(isGuidedDemo);
-    setQuestion(isGuidedDemo ? demoAnswers[0]?.question ?? "" : "");
+    setQuestion(isGuidedDemo ? getInitialGuidedQuestion("preop") : "");
     setCurrentAnswer("");
     setAnswers(isGuidedDemo ? demoAnswers : []);
     setConversationComplete(isGuidedDemo);
@@ -162,7 +156,9 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
     setError(null);
 
     try {
-      const response = await fetch("/api/guided-interviewer", {
+      const response = await fetchWithTimeout(
+        "/api/guided-interviewer",
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -174,11 +170,15 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
           previousAnswers: answerHistory.map((answer) => answer.answer),
           latestAnswer
         })
-      });
+        },
+        8000
+      );
       const payload = (await response.json()) as ApiResponse<GuidedQuestionResponse>;
 
       if (!payload.ok || !payload.data) {
-        setError(payload.error?.message ?? "ClinicBrief could not prepare the next question.");
+        setQuestion(getGuidedQuestionAt(appointmentType, answerHistory.length));
+        setStatus("Using a quick safe question so you can keep going.");
+        setError(payload.error?.message ?? "ClinicBrief could not tailor the next question.");
         return;
       }
 
@@ -191,7 +191,9 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
         setStatus(null);
       }
     } catch {
-      setError("ClinicBrief could not prepare the next question. You can still type what you want included.");
+      setQuestion(getGuidedQuestionAt(appointmentType, answerHistory.length));
+      setStatus("Using a quick safe question so you can keep going.");
+      setError("ClinicBrief could not tailor the next question quickly enough.");
     } finally {
       setIsQuestionLoading(false);
     }
@@ -242,8 +244,9 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       const payload = (await response.json()) as ApiResponse<GuidedProfileDraftResponse>;
 
       if (!payload.ok || !payload.data) {
-        setError(payload.error?.message ?? "ClinicBrief could not autofill the form. You can still fill it manually.");
-        setStatus(null);
+        updateProfile(parseProfileDraftLocally(transcript));
+        setError(null);
+        setStatus("Filled the basic fields locally. Please review them before continuing.");
         return;
       }
 
@@ -256,8 +259,10 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
       });
       setStatus(`Autofilled what ClinicBrief could read clearly. Confidence: ${Math.round(payload.data.confidence * 100)}%. Please review before continuing.`);
     } catch {
-      setError("ClinicBrief could not autofill the form. You can still fill it manually.");
-      setStatus(null);
+      const localProfile = parseProfileDraftLocally(transcript);
+      updateProfile(localProfile);
+      setError(null);
+      setStatus("Filled the basic fields locally. Please review them before continuing.");
     } finally {
       setIsProfileParsing(false);
     }
@@ -549,7 +554,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
                 <span className="w-fit rounded-full bg-[#F6DFD2] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.08em] text-[#C8553D]">Quick question</span>
                 <span className="rounded-full bg-[#FFFDF8] px-3 py-1 text-xs font-extrabold text-[#8A7A6E]">Question {currentQuestionNumber} of {maxGuidedQuestions}</span>
               </div>
-              <h3 className="text-2xl font-semibold leading-snug text-[#3D2F26]">{isQuestionLoading || (!question && answers.length === 0) ? "Preparing your question..." : question || "Preparing your next question..."}</h3>
+              <h3 className="text-2xl font-semibold leading-snug text-[#3D2F26]">{isQuestionLoading && answers.length > 0 ? "Preparing your next question..." : question || getInitialGuidedQuestion(appointmentType)}</h3>
               {isQuestionLoading ? <p className="text-sm font-semibold text-[#8A7A6E]">Preparing the next safe question...</p> : null}
             </div>
             <div className="grid gap-3 rounded-2xl border border-[#EFE2D2] bg-[#FFFDF8] p-3">
@@ -684,6 +689,22 @@ function SummaryTile({ icon, label, value }: { icon: ReactNode; label: string; v
       <p className="text-xl font-semibold text-[#3D2F26]">{value}</p>
     </div>
   );
+}
+
+function parseProfileDraftLocally(transcript: string): Partial<GuidedProfile> {
+  const clean = transcript.trim();
+  const firstNameMatch = clean.match(/\b(?:my name is|name is|i am|i'm)\s+([A-Za-z][A-Za-z'-]{1,40})\b/i);
+  const ageMatch = clean.match(/\b(?:i am|i'm|age|aged)\s+(\d{1,3})(?:\s*years?\s*old)?\b/i) ?? clean.match(/\b(\d{1,3})\s*years?\s*old\b/i);
+  const genderMatch = clean.match(/\b(?:i am a|i'm a|gender is|sex is)\s+(woman|man|female|male|non-binary|nonbinary)\b/i);
+  const preparingFor = /\b(my dad|my mum|my mom|my mother|my father|my parent|my child|my partner|someone else|for him|for her|for them)\b/i.test(clean) ? "someone_else" : "self";
+
+  return {
+    firstName: firstNameMatch?.[1] ?? "",
+    age: ageMatch?.[1] ?? "",
+    gender: genderMatch?.[1] ?? "",
+    preparingFor,
+    aboutYou: clean.slice(0, 180)
+  };
 }
 
 function isStepReady(

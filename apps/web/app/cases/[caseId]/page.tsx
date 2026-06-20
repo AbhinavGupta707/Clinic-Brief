@@ -2,8 +2,6 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, ChevronDown, ClipboardList, Download, FileText, HelpCircle, MessageSquareText, RotateCcw, Settings, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { AppShell } from "../../../components/app-shell";
-import { Chip, DemoFlowNav } from "../../../components/demo/demo-case-components";
 import { getClinicRepository } from "../../../lib/server/clinic-repository";
 import { buildCaseDashboardState, buildChronicLongitudinalDashboardState, getDashboardTimeline, getDefaultBriefType } from "./dashboard-state";
 
@@ -24,10 +22,29 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
   const isDemoCase = caseId === "sample-preop";
 
   return (
-    <AppShell eyebrow={isDemoCase ? "Synthetic outcome hub" : "Outcome hub"} title={record.title}>
-      {isDemoCase ? <DemoFlowNav current="Dashboard" /> : null}
+    <main className="min-h-screen bg-[#F8F1E7] text-[#3D2F26]">
+      <div className="mx-auto grid w-[min(100%-2rem,72rem)] gap-5 py-4 sm:py-6">
+        <nav aria-label="Primary" className="flex min-h-11 items-center justify-between">
+          <Link className="rounded-full px-3 py-2 text-lg font-extrabold text-[#3D2F26] hover:bg-[#FFFDF8]" href="/">
+            ClinicBrief
+          </Link>
+          <div className="flex items-center gap-2 text-sm font-bold">
+            <Link className="rounded-full px-3 py-2 text-[#5C4A3E] hover:bg-[#FFFDF8]" href="/cases/new">
+              New
+            </Link>
+            <Link className="rounded-full px-3 py-2 text-[#5C4A3E] hover:bg-[#FFFDF8]" href="/privacy">
+              Privacy
+            </Link>
+          </div>
+        </nav>
 
-      <section className="grid gap-5 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+        <section className="mx-auto grid w-full max-w-[46rem] gap-3 text-center">
+          <p className="text-sm font-extrabold uppercase tracking-[0.12em] text-[#C8553D]">{isDemoCase ? "Synthetic outcome hub" : "Outcome hub"}</p>
+          <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">{record.title}</h1>
+          <p className="mx-auto max-w-[38rem] text-base font-medium leading-7 text-[#8A7A6E]">Choose what you want to use next. Your appointment pack stays under your control.</p>
+        </section>
+
+      <section className="grid gap-5 rounded-[1.4rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_14px_38px_rgba(61,47,38,0.10)]">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
           <div className="grid gap-3">
             <div className="flex flex-wrap gap-2">
@@ -35,17 +52,17 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
               <Chip tone={record.status === "DELETED" ? "warning" : "success"}>{record.status.toLowerCase().replace("_", " ")}</Chip>
               <Chip>{dashboard.counts.sourcePreviews || dashboard.counts.documents} sources</Chip>
             </div>
-            <h2 className="max-w-3xl text-2xl font-semibold text-clinic-ink">Choose what you want to use next</h2>
-            <p className="max-w-3xl text-base leading-7 text-clinic-muted">
+            <h2 className="max-w-3xl text-2xl font-semibold text-[#3D2F26]">Choose what you want to use next</h2>
+            <p className="max-w-3xl text-base font-medium leading-7 text-[#8A7A6E]">
               Your appointment pack stays under your control. Review key points first, then open the brief, timeline, questions, practice, or export when you are ready.
             </p>
           </div>
-          <Link className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-success px-5 py-3 font-semibold text-white transition hover:bg-emerald-700" href={dashboard.nextAction.href}>
+          <Link className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#C8553D] px-5 py-3 font-extrabold text-white transition hover:bg-[#B84B36]" href={dashboard.nextAction.href}>
             {dashboard.nextAction.label}
             <ArrowRight size={18} aria-hidden />
           </Link>
         </div>
-        <p className="rounded-md border border-cyan-100 bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted">{dashboard.nextAction.reason}</p>
+        <p className="rounded-2xl border border-[#EFE2D2] bg-[#F8F1E7] p-3 text-sm font-medium leading-6 text-[#8A7A6E]">{dashboard.nextAction.reason}</p>
       </section>
 
       <section aria-label="Outcome actions" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -63,12 +80,12 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
         <OutcomeCard body="Confirm, edit, or hide extracted key points before they shape outputs." href={`/cases/${caseId}/review`} icon={ClipboardList} title="Review Key Points" />
       </section>
 
-      <section className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-clinic-ink">
+      <section className="grid gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)]">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-[#3D2F26]">
           <ShieldCheck size={19} aria-hidden />
           Preparation only
         </h2>
-        <p className="text-sm leading-6 text-clinic-muted">
+        <p className="text-sm font-medium leading-6 text-[#8A7A6E]">
           ClinicBrief organizes information you provide so you can prepare for appointments. It does not diagnose, recommend treatment, or replace medical advice. Review everything before sharing it with a clinician.
         </p>
       </section>
@@ -192,15 +209,16 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
       </details>
 
       <div className="flex flex-wrap gap-3">
-        <Link className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href={`/cases/${caseId}/settings`}>
+        <Link className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" href={`/cases/${caseId}/settings`}>
           <Settings size={18} aria-hidden />
           Settings and delete
         </Link>
-        <Link className="inline-flex min-h-11 items-center rounded-md border border-clinic-line bg-white px-5 py-3 font-semibold text-clinic-ink hover:bg-cyan-50" href="/privacy">
+        <Link className="inline-flex min-h-11 items-center rounded-full border border-[#E4D8C8] bg-[#FFFDF8] px-5 py-3 font-extrabold text-[#5C4A3E] hover:bg-[#F2ECE0]" href="/privacy">
           Privacy
         </Link>
       </div>
-    </AppShell>
+      </div>
+    </main>
   );
 }
 
@@ -217,21 +235,32 @@ function OutcomeCard({
   title: string;
   tone?: "primary" | "success" | "neutral";
 }) {
-  const iconClassName = tone === "success" ? "bg-emerald-50 text-emerald-700" : tone === "primary" ? "bg-clinic-surface text-clinic-primary" : "bg-white text-clinic-primary";
+  const iconClassName = tone === "success" ? "bg-[#EEF3E8] text-[#758A5F]" : tone === "primary" ? "bg-[#F6DFD2] text-[#C8553D]" : "bg-[#FFFDF8] text-[#C8553D]";
 
   return (
-    <Link className="grid min-h-48 content-start gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-clinic-primary hover:bg-cyan-50" href={href}>
-      <span className={`flex h-12 w-12 items-center justify-center rounded-md ${iconClassName}`}>
+    <Link className="grid min-h-48 content-start gap-4 rounded-[1.25rem] border border-[#EFE2D2] bg-[#FFFDF8] p-5 shadow-[0_10px_28px_rgba(61,47,38,0.08)] transition hover:-translate-y-0.5 hover:border-[#C8553D] hover:bg-[#FFF8F2]" href={href}>
+      <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${iconClassName}`}>
         <Icon size={24} aria-hidden />
       </span>
-      <span className="text-xl font-semibold text-clinic-ink">{title}</span>
-      <span className="text-sm leading-6 text-clinic-muted">{body}</span>
-      <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-clinic-primary">
+      <span className="text-xl font-semibold text-[#3D2F26]">{title}</span>
+      <span className="text-sm font-medium leading-6 text-[#8A7A6E]">{body}</span>
+      <span className="mt-auto inline-flex items-center gap-2 text-sm font-extrabold text-[#C8553D]">
         Open
         <ArrowRight size={16} aria-hidden />
       </span>
     </Link>
   );
+}
+
+function Chip({ children, tone = "neutral" }: { children: ReactNode; tone?: "primary" | "success" | "warning" | "neutral" }) {
+  const className = {
+    primary: "border-[#F0C8BE] bg-[#F6DFD2] text-[#C8553D]",
+    success: "border-[#D9E5CF] bg-[#EEF3E8] text-[#758A5F]",
+    warning: "border-[#F0C8BE] bg-[#FFF0EA] text-[#B84B36]",
+    neutral: "border-[#E4D8C8] bg-[#FFFDF8] text-[#8A7A6E]"
+  }[tone];
+
+  return <span className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-[0.06em] ${className}`}>{children}</span>;
 }
 
 function MetricCard({ label, value, detail }: { label: string; value: number; detail: string }) {
