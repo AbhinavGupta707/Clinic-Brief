@@ -271,7 +271,7 @@ export default async function CaseDashboardPage({ params }: { params: Promise<{ 
                 ))}
               </ol>
             ) : (
-              <EmptyState>The timeline appears after facts are reviewed or enough high-confidence facts are available.</EmptyState>
+              <EmptyState>The timeline appears after facts are confirmed or edited in review.</EmptyState>
             )}
           </DashboardPanel>
 

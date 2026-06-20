@@ -65,7 +65,7 @@ describe("brief export helpers", () => {
     expect(text).toContain(requiredDisclaimer);
   });
 
-  it("generates timelines from confirmed, edited, and high-confidence unrejected facts only", () => {
+  it("generates timelines from confirmed and edited facts only", () => {
     const timeline = buildTimelineFromReviewedFacts("case-output", [
       makeFact("confirmed", "SYMPTOM", "CONFIRMED", 0.5),
       makeFact("edited", "MEDICATION", "EDITED", 0.5),
@@ -73,8 +73,10 @@ describe("brief export helpers", () => {
       makeFact("rejected", "APPOINTMENT", "REJECTED", 1)
     ]);
 
-    expect(timeline.map((event) => event.sourceFactIds?.[0])).toEqual(["confirmed", "edited", "confident"]);
-    expect(timeline.map((event) => event.description).join(" ")).not.toContain("rejected");
+    const timelineText = timeline.map((event) => event.description).join(" ");
+    expect(timeline.map((event) => event.sourceFactIds?.[0])).toEqual(["confirmed", "edited"]);
+    expect(timelineText).not.toContain("confident");
+    expect(timelineText).not.toContain("rejected");
   });
 
   it("builds a brief with source coverage and without rejected facts", () => {

@@ -88,7 +88,7 @@ export function getFactsForGeneratedOutputs(facts: ExtractedFact[]): ExtractedFa
     (fact) =>
       !isPatternCardFact(fact) &&
       fact.userStatus !== "REJECTED" &&
-      (fact.userStatus === "CONFIRMED" || fact.userStatus === "EDITED" || fact.confidence >= 0.8)
+      (fact.userStatus === "CONFIRMED" || fact.userStatus === "EDITED")
   );
 }
 
