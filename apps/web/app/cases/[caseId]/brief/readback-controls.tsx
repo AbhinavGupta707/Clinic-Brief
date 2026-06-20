@@ -20,16 +20,16 @@ export function BriefReadbackControls({ briefType, mode, text }: { briefType: Br
   }
 
   return (
-    <section className="print:hidden rounded-md border border-clinic-line bg-clinic-surface p-4">
+    <section className="print:hidden rounded-2xl border border-[#EFE2D2] bg-[#F8F1E7] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="font-semibold text-clinic-ink">Read-back</h2>
-          <p className="mt-1 text-sm leading-6 text-clinic-muted">
+          <h2 className="font-semibold text-[#3D2F26]">Read-back</h2>
+          <p className="mt-1 text-sm font-medium leading-6 text-[#8A7A6E]">
             Browser speech only. No audio is uploaded or stored by ClinicBrief.
           </p>
         </div>
         <button
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#C8553D] px-5 py-3 font-extrabold text-white transition hover:bg-[#B84B36] disabled:cursor-not-allowed disabled:bg-[#D8C9BA]"
           disabled={capability === "unsupported"}
           onClick={handleToggle}
           type="button"
@@ -38,7 +38,7 @@ export function BriefReadbackControls({ briefType, mode, text }: { briefType: Br
           {isSpeaking ? "Stop" : "Read story"}
         </button>
       </div>
-      <p className="mt-3 text-sm leading-6 text-clinic-muted" role="status">
+      <p className="mt-3 text-sm font-medium leading-6 text-[#8A7A6E]" role="status">
         {error ?? (capability === "unsupported" ? "Read-back is unavailable in this browser." : isSpeaking ? "Reading the story aloud." : "Ready to read the story aloud.")}
       </p>
     </section>
