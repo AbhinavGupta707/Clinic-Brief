@@ -1,10 +1,11 @@
 "use client";
 
 import { Events, trackEvent } from "@clinicbrief/events";
-import type { ApiResponse, CaseMode, CreateCaseResponse } from "@clinicbrief/types";
+import type { ApiResponse, CaseMode, CreateCaseInitialSource, CreateCaseResponse } from "@clinicbrief/types";
 import { ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { StoryDumpInput } from "./story-dump-input";
 
 const modes: Array<{ value: CaseMode; label: string; description: string }> = [
   { value: "PREOP", label: "Pre-op", description: "Surgery-readiness notes, allergies, medicines, and practical support." },
@@ -22,6 +23,11 @@ export function NewCaseForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
+  const [storyText, setStoryText] = useState("");
+  const [storyCaptureMethod, setStoryCaptureMethod] = useState<CreateCaseInitialSource["captureMethod"]>("typed");
+  const [storyReviewed, setStoryReviewed] = useState(false);
+  const [modeOverride, setModeOverride] = useState(false);
+  const [modeSuggestion, setModeSuggestion] = useState("Suggested general mode because no supported workflow cue was found.");
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,6 +36,13 @@ export function NewCaseForm() {
 
     if (!consent) {
       setError("Consent is required before ClinicBrief can create or store case information.");
+      return;
+    }
+
+    const reviewedStoryText = storyText.trim();
+
+    if (reviewedStoryText && !storyReviewed) {
+      setError("Review the story text before creating the case. ClinicBrief saves only the reviewed text, never audio.");
       return;
     }
 
@@ -43,7 +56,20 @@ export function NewCaseForm() {
       const response = await fetch("/api/cases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, mode, consent }),
+        body: JSON.stringify({
+          title,
+          mode,
+          consent,
+          initialSource: reviewedStoryText
+            ? {
+                text: reviewedStoryText,
+                sourceLabel: "Story dump transcript",
+                captureMethod: storyCaptureMethod,
+                userReviewed: true,
+                storesAudio: false
+              }
+            : undefined
+        }),
         signal: controller.signal
       });
       window.clearTimeout(timeoutId);
@@ -59,7 +85,7 @@ export function NewCaseForm() {
 
       setStatus("Opening case dashboard...");
       trackEvent(Events.ConsentAccepted, { mode });
-      trackEvent(Events.CaseCreated, { mode });
+      trackEvent(Events.CaseCreated, { mode, sourceCount: reviewedStoryText ? 1 : 0 });
       const nextDashboardUrl = `/cases/${payload.data.caseId}`;
       didCreateCase = true;
       setDashboardUrl(nextDashboardUrl);
@@ -96,12 +122,39 @@ export function NewCaseForm() {
           value={title}
         />
       </label>
+      <StoryDumpInput
+        captureMethod={storyCaptureMethod}
+        disabled={isSubmitting}
+        mode={mode}
+        onCaptureMethodChange={setStoryCaptureMethod}
+        onReviewedChange={setStoryReviewed}
+        onSuggestedModeChange={(suggestedMode, explanation) => {
+          setModeSuggestion(explanation);
+          if (!modeOverride) {
+            setMode(suggestedMode);
+          }
+        }}
+        onTextChange={setStoryText}
+        reviewed={storyReviewed}
+        text={storyText}
+      />
       <fieldset className="grid gap-3">
         <legend className="text-sm font-semibold text-clinic-ink">Appointment context</legend>
+        {storyText.trim() ? <p className="text-sm leading-6 text-clinic-muted">{modeSuggestion} You can override the suggestion here.</p> : null}
         <div className="grid gap-3 sm:grid-cols-2">
           {modes.map((item) => (
             <label key={item.value} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-clinic-line px-3 py-3 text-sm text-clinic-muted">
-              <input checked={mode === item.value} className="mt-1" name="mode" onChange={() => setMode(item.value)} type="radio" value={item.value} />
+              <input
+                checked={mode === item.value}
+                className="mt-1"
+                name="mode"
+                onChange={() => {
+                  setMode(item.value);
+                  setModeOverride(true);
+                }}
+                type="radio"
+                value={item.value}
+              />
               <span className="grid gap-1">
                 <span className="font-semibold text-clinic-ink">{item.label}</span>
                 <span className="leading-5">{item.description}</span>
