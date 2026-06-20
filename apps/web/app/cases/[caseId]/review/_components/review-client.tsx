@@ -2,7 +2,7 @@
 
 import { Events, trackEvent } from "@clinicbrief/events";
 import type { ApiResponse, ExtractCaseResponse, ExtractedFact, MissingQuestion, UpdateFactResponse } from "@clinicbrief/types";
-import { Check, Pencil, RotateCcw, X } from "lucide-react";
+import { Check, ChevronDown, Pencil, RotateCcw, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -16,12 +16,16 @@ export function ReviewClient({ caseId }: { caseId: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [pendingFactId, setPendingFactId] = useState<string | null>(null);
   const [savedFactId, setSavedFactId] = useState<string | null>(null);
+  const isDemoCase = caseId === "sample-preop";
+  const confirmedCount = facts.filter((fact) => fact.userStatus === "CONFIRMED" || fact.userStatus === "EDITED").length;
+  const rejectedCount = facts.filter((fact) => fact.userStatus === "REJECTED").length;
+  const needsReviewCount = facts.length - confirmedCount - rejectedCount;
 
   useEffect(() => {
     void loadExtraction();
   }, []);
 
-  async function loadExtraction() {
+  async function loadExtraction(): Promise<boolean> {
     setIsLoading(true);
     const response = await fetch(`/api/cases/${caseId}/extract`);
     const payload = (await response.json()) as ApiResponse<ExtractCaseResponse>;
@@ -29,16 +33,27 @@ export function ReviewClient({ caseId }: { caseId: string }) {
 
     if (!payload.ok || !payload.data) {
       setStatus(payload.error?.message ?? "Run extraction from intake first.");
-      return;
+      return false;
     }
 
     setFacts(payload.data.facts);
     setQuestions(payload.data.questions);
     setSource(payload.data.source);
+    setStatus(null);
+    return true;
   }
 
   async function runExtraction() {
     setStatus(null);
+
+    if (isDemoCase) {
+      const loaded = await loadExtraction();
+      if (loaded) {
+        setStatus("Sample facts refreshed. Review choices in the demo are saved in this browser view only.");
+      }
+      return;
+    }
+
     const response = await fetch(`/api/cases/${caseId}/extract`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,6 +97,17 @@ export function ReviewClient({ caseId }: { caseId: string }) {
     setEditingFactId(null);
     setDraftText("");
 
+    if (isDemoCase) {
+      setPendingFactId(null);
+      setSavedFactId(fact.id);
+      setStatus(userStatus === "EDITED" ? "Demo edit saved for this view." : null);
+      window.setTimeout(() => setSavedFactId((current) => (current === fact.id ? null : current)), 3000);
+      trackReviewEvent(userStatus, fact.category);
+      return;
+    }
+
+    let saved = false;
+
     try {
       const response = await fetch(`/api/cases/${caseId}/facts/${fact.id}`, {
         method: "PATCH",
@@ -95,6 +121,7 @@ export function ReviewClient({ caseId }: { caseId: string }) {
         setFacts((current) => current.map((item) => (item.id === fact.id ? updated : item)));
         setSavedFactId(fact.id);
         setStatus(userStatus === "EDITED" ? "Edit saved. This wording will be used in the timeline and brief." : null);
+        saved = true;
         window.setTimeout(() => setSavedFactId((current) => (current === fact.id ? null : current)), 3000);
       } else {
         setFacts((current) => current.map((item) => (item.id === fact.id ? fact : item)));
@@ -107,12 +134,8 @@ export function ReviewClient({ caseId }: { caseId: string }) {
       setPendingFactId(null);
     }
 
-    if (userStatus === "CONFIRMED") {
-      trackEvent(Events.FactConfirmed, { category: fact.category });
-    }
-
-    if (userStatus === "EDITED") {
-      trackEvent(Events.FactEdited, { category: fact.category });
+    if (saved) {
+      trackReviewEvent(userStatus, fact.category);
     }
   }
 
@@ -124,52 +147,51 @@ export function ReviewClient({ caseId }: { caseId: string }) {
   }
 
   if (isLoading) {
-    return <p className="rounded-md border border-clinic-line bg-white p-5 text-clinic-muted">Loading extracted facts...</p>;
+    return <p className="rounded-md border border-clinic-line bg-white p-5 text-clinic-muted">Loading your review list...</p>;
   }
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-clinic-line bg-white p-4">
-        <div>
-          <h2 className="text-lg font-semibold text-clinic-ink">Fact review workspace</h2>
-          <p className="mt-1 text-sm text-clinic-muted">Source: {source === "fireworks" ? "Fireworks extraction" : "deterministic fixture fallback"}. Confirm, edit, or reject before using these facts in a brief.</p>
+      <div className="grid gap-4 rounded-md border border-clinic-line bg-white p-4 shadow-soft sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-semibold leading-tight text-clinic-ink">Check what should go in your brief</h2>
+            <p className="mt-2 text-base leading-7 text-clinic-muted">Start with the simple list. Open source details only when you want to check where something came from.</p>
+          </div>
+          <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50" onClick={runExtraction} type="button">
+            <RotateCcw aria-hidden className="h-5 w-5" />
+            Run extraction
+          </button>
         </div>
-        <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50" onClick={runExtraction} type="button">
-          <RotateCcw aria-hidden className="h-5 w-5" />
-          Run extraction
-        </button>
+        <div className="grid gap-2 text-sm sm:grid-cols-3">
+          <ReviewStat label="Ready for brief" value={confirmedCount} tone="ready" />
+          <ReviewStat label="Still to check" value={Math.max(needsReviewCount, 0)} tone="pending" />
+          <ReviewStat label="Hidden from brief" value={rejectedCount} tone="hidden" />
+        </div>
+        <p className="text-sm leading-6 text-clinic-muted">
+          Source: {source === "fireworks" ? "Fireworks extraction" : "deterministic fallback"}
+          {isDemoCase ? ". This sample is read-only, so review choices stay local to this page." : "."}
+        </p>
       </div>
 
       {status ? <p className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-clinic-warning">{status}</p> : null}
 
       <div className="grid gap-3">
-        {facts.length === 0 ? <p className="rounded-md border border-dashed border-clinic-line bg-white p-5 text-sm text-clinic-muted">No facts yet. Run extraction after adding notes in intake.</p> : null}
+        {facts.length === 0 ? <p className="rounded-md border border-dashed border-clinic-line bg-white p-5 text-sm text-clinic-muted">No review items yet. Add a note or document, then run extraction.</p> : null}
         {facts.map((fact) => (
-          <article key={fact.id} className="grid gap-4 rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+          <article key={fact.id} className="grid gap-4 rounded-md border border-clinic-line bg-white p-4 shadow-soft sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="grid gap-2">
+              <div className="min-w-0 flex-1">
                 <span className="w-fit rounded-md bg-clinic-surface px-2 py-1 text-xs font-semibold uppercase text-clinic-primary">{fact.category.replace("_", " ")}</span>
                 {editingFactId === fact.id ? (
-                  <textarea className="min-h-24 rounded-md border border-clinic-line p-3 text-base leading-7 text-clinic-ink" onChange={(event) => setDraftText(event.target.value)} value={draftText} />
+                  <textarea className="mt-3 min-h-24 w-full rounded-md border border-clinic-line p-3 text-base leading-7 text-clinic-ink" onChange={(event) => setDraftText(event.target.value)} value={draftText} />
                 ) : (
-                  <h3 className="text-lg font-semibold text-clinic-ink">{fact.displayText}</h3>
+                  <h3 className="mt-3 text-lg font-semibold leading-7 text-clinic-ink">{fact.displayText}</h3>
                 )}
               </div>
               <span className={statusClassName(fact.userStatus)}>{fact.userStatus.replace("_", " ").toLowerCase()}</span>
             </div>
-            <div className="grid gap-2 text-sm leading-6 text-clinic-muted sm:grid-cols-3">
-              <p>
-                <span className="font-semibold text-clinic-ink">Confidence:</span> {Math.round(fact.confidence * 100)}%
-              </p>
-              <p>
-                <span className="font-semibold text-clinic-ink">Source:</span> {fact.sourceDocId ?? "source pending"}
-              </p>
-              <p>
-                <span className="font-semibold text-clinic-ink">Review:</span> user-controlled
-              </p>
-            </div>
-            {fact.sourceQuote ? <p className="rounded-md bg-clinic-surface p-3 text-sm leading-6 text-clinic-muted">Source snippet: {fact.sourceQuote}</p> : null}
-            {savedFactId === fact.id ? <p className="text-sm font-semibold text-clinic-success">Saved.</p> : null}
+
             <div className="flex flex-wrap gap-3">
               {editingFactId === fact.id ? (
                 <>
@@ -221,23 +243,52 @@ export function ReviewClient({ caseId }: { caseId: string }) {
                 </>
               )}
             </div>
+            <details className="group rounded-md bg-clinic-surface px-4 py-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-clinic-ink">
+                <span>Source details</span>
+                <ChevronDown aria-hidden className="h-4 w-4 transition group-open:rotate-180" />
+              </summary>
+              <div className="mt-3 grid gap-2 text-sm leading-6 text-clinic-muted sm:grid-cols-3">
+                <p>
+                  <span className="font-semibold text-clinic-ink">Confidence:</span> {Math.round(fact.confidence * 100)}%
+                </p>
+                <p>
+                  <span className="font-semibold text-clinic-ink">Source:</span> {fact.sourceDocId ?? "source pending"}
+                </p>
+                <p>
+                  <span className="font-semibold text-clinic-ink">Review:</span> user-controlled
+                </p>
+              </div>
+              {fact.sourceQuote ? <p className="mt-3 rounded-md bg-white p-3 text-sm leading-6 text-clinic-muted">Source snippet: {fact.sourceQuote}</p> : null}
+            </details>
+            {savedFactId === fact.id ? <p className="text-sm font-semibold text-clinic-success">Saved.</p> : null}
           </article>
         ))}
       </div>
 
-      <section className="grid gap-3 rounded-md border border-clinic-line bg-white p-5">
-        <h2 className="text-lg font-semibold text-clinic-ink">Missing-context questions</h2>
-        {questions.map((question) => (
-          <article key={question.id} className="rounded-md border border-cyan-100 p-4">
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-md bg-clinic-surface px-2 py-1 text-xs font-semibold uppercase text-clinic-primary">{question.priority}</span>
-              <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold uppercase text-emerald-700">{question.answerType.replace("_", " ")}</span>
+      {questions.length > 0 ? (
+        <details className="group rounded-md border border-clinic-line bg-white p-5 shadow-soft">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-clinic-ink">Questions to consider</h2>
+              <p className="mt-1 text-sm text-clinic-muted">{questions.length} optional prompt{questions.length === 1 ? "" : "s"} found. Open when you want to prepare more context.</p>
             </div>
-            <h3 className="mt-3 font-semibold text-clinic-ink">{question.question}</h3>
-            <p className="mt-1 text-sm leading-6 text-clinic-muted">{question.whyItMattersForAppointment}</p>
-          </article>
-        ))}
-      </section>
+            <ChevronDown aria-hidden className="h-5 w-5 text-clinic-muted transition group-open:rotate-180" />
+          </summary>
+          <div className="mt-4 grid gap-3">
+            {questions.map((question) => (
+              <article key={question.id} className="rounded-md border border-cyan-100 p-4">
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-md bg-clinic-surface px-2 py-1 text-xs font-semibold uppercase text-clinic-primary">{question.priority}</span>
+                  <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold uppercase text-emerald-700">{question.answerType.replace("_", " ")}</span>
+                </div>
+                <h3 className="mt-3 font-semibold text-clinic-ink">{question.question}</h3>
+                <p className="mt-1 text-sm leading-6 text-clinic-muted">{question.whyItMattersForAppointment}</p>
+              </article>
+            ))}
+          </div>
+        </details>
+      ) : null}
 
       <div className="flex flex-wrap gap-3">
         <Link className="inline-flex min-h-11 items-center rounded-md bg-clinic-primary px-5 py-3 font-semibold text-white hover:bg-clinic-primaryDark" href={`/cases/${caseId}`}>
@@ -270,4 +321,29 @@ function statusClassName(status: ExtractedFact["userStatus"]): string {
   }
 
   return `${base} bg-clinic-surface text-clinic-muted`;
+}
+
+function ReviewStat({ label, value, tone }: { label: string; value: number; tone: "ready" | "pending" | "hidden" }) {
+  const toneClassName = {
+    ready: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    pending: "border-cyan-100 bg-clinic-surface text-clinic-primary",
+    hidden: "border-rose-100 bg-rose-50 text-rose-700"
+  }[tone];
+
+  return (
+    <div className={`rounded-md border px-4 py-3 ${toneClassName}`}>
+      <p className="text-2xl font-semibold leading-none">{value}</p>
+      <p className="mt-1 text-sm font-semibold">{label}</p>
+    </div>
+  );
+}
+
+function trackReviewEvent(userStatus: ExtractedFact["userStatus"], category: ExtractedFact["category"]) {
+  if (userStatus === "CONFIRMED") {
+    trackEvent(Events.FactConfirmed, { category });
+  }
+
+  if (userStatus === "EDITED") {
+    trackEvent(Events.FactEdited, { category });
+  }
 }
