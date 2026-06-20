@@ -126,6 +126,8 @@ Fireworks:
 ```bash
 FIREWORKS_API_KEY=...
 FIREWORKS_MODEL=accounts/fireworks/models/...
+# Production guided onboarding should fail loudly instead of using deterministic AI fallback.
+CLINICBRIEF_REQUIRE_AI=true
 ```
 
 Postgres/Supabase persistence:

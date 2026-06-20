@@ -32,4 +32,22 @@ describe("runtime readiness contract", () => {
     expect(JSON.stringify(readiness)).not.toContain("secret-key");
     expect(getReadinessHttpStatus(readiness)).toBe(503);
   });
+
+  it("treats AI-required mode without Fireworks as misconfigured", () => {
+    const readiness = getRuntimeReadiness({
+      CLINICBRIEF_REQUIRE_AI: "true",
+      CLINICBRIEF_DATA_BACKEND: "memory",
+      CLINICBRIEF_STORAGE_BACKEND: "memory",
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+    });
+
+    expect(readiness.ok).toBe(false);
+    expect(readiness.ai).toMatchObject({
+      state: "misconfigured",
+      backend: "fireworks",
+      configuredEnv: ["CLINICBRIEF_REQUIRE_AI"],
+      missingEnv: ["FIREWORKS_API_KEY", "FIREWORKS_MODEL"]
+    });
+    expect(getReadinessHttpStatus(readiness)).toBe(503);
+  });
 });

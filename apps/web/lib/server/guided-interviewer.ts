@@ -19,6 +19,13 @@ export type GuidedInterviewQuestion = {
   complete?: boolean;
 };
 
+export class GuidedAiUnavailableError extends Error {
+  constructor(message = "ClinicBrief AI is required for this guided flow, but Fireworks is not configured or did not respond.") {
+    super(message);
+    this.name = "GuidedAiUnavailableError";
+  }
+}
+
 const GuidedQuestionSchema = z
   .object({
     question: z.string().trim().min(1).max(240),
@@ -62,6 +69,7 @@ const fallbackQuestions: Record<AppointmentPrepType, string[]> = {
 export async function getGuidedInterviewQuestion(input: GuidedInterviewInput): Promise<GuidedInterviewQuestion> {
   const redirect = getSafetyRedirect(input.latestAnswer ?? "");
   const fallback = getFallbackQuestion(input);
+  const requireAi = isGuidedAiRequired();
 
   if (redirect) {
     return {
@@ -73,6 +81,10 @@ export async function getGuidedInterviewQuestion(input: GuidedInterviewInput): P
   }
 
   if (!isFireworksConfigured()) {
+    if (requireAi) {
+      throw new GuidedAiUnavailableError("Fireworks is required for the guided interviewer. Set FIREWORKS_API_KEY and FIREWORKS_MODEL.");
+    }
+
     return { ...fallback, source: "fixture" };
   }
 
@@ -93,6 +105,10 @@ export async function getGuidedInterviewQuestion(input: GuidedInterviewInput): P
       complete: generated.complete ?? fallback.complete
     };
   } catch {
+    if (requireAi) {
+      throw new GuidedAiUnavailableError("Fireworks could not prepare the next guided question. Try again or check the configured model.");
+    }
+
     return { ...fallback, source: "fixture" };
   }
 }
@@ -115,9 +131,11 @@ function buildPrompt(input: GuidedInterviewInput, fallbackQuestion: string): str
     preparingFor: input.preparingFor ?? "self",
     firstName: input.firstName?.trim() || undefined,
     simpleLanguage: Boolean(input.simpleLanguage),
-    previousQuestions: input.previousQuestions.slice(-6),
-    previousAnswerCount: input.previousAnswers.filter((answer) => answer.trim()).length,
-    latestAnswerSummary: input.latestAnswer?.trim() ? "A reviewed user answer was provided. Do not repeat it." : "No latest answer.",
+    previousTurns: input.previousQuestions.slice(-6).map((question, index) => ({
+      question,
+      answer: input.previousAnswers[index]?.trim() || ""
+    })),
+    latestAnswer: input.latestAnswer?.trim() || undefined,
     fallbackQuestion,
     safetyRules: [
       "Preparation questions only.",
@@ -125,7 +143,8 @@ function buildPrompt(input: GuidedInterviewInput, fallbackQuestion: string): str
       "No treatment recommendations.",
       "No medication start, stop, dose, or change advice.",
       "No urgency or emergency triage.",
-      "Ask exactly one question."
+      "Ask exactly one question.",
+      "Use reviewed user answers only to choose the next relevant appointment-prep question."
     ]
   });
 }
@@ -148,4 +167,8 @@ function normalizeOneQuestion(question: string): string {
 
 function isFireworksConfigured(): boolean {
   return Boolean(process.env.FIREWORKS_API_KEY && process.env.FIREWORKS_MODEL);
+}
+
+export function isGuidedAiRequired(): boolean {
+  return process.env.CLINICBRIEF_REQUIRE_AI?.trim().toLowerCase() === "true";
 }

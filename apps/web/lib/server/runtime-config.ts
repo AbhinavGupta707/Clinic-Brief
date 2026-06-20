@@ -58,16 +58,28 @@ function getAppReadiness(env: Env): RuntimeServiceReadiness {
 }
 
 function getAiReadiness(env: Env): RuntimeServiceReadiness {
+  const requireAi = env.CLINICBRIEF_REQUIRE_AI?.trim().toLowerCase() === "true";
   const configuredEnv = presentNames(env, ["FIREWORKS_API_KEY", "FIREWORKS_MODEL"]);
   const missingEnv = missingNames(env, ["FIREWORKS_API_KEY", "FIREWORKS_MODEL"]);
+  const allConfiguredEnv = [...presentNames(env, ["CLINICBRIEF_REQUIRE_AI"]), ...configuredEnv];
 
   if (configuredEnv.length === 2) {
     return {
       state: "configured",
       backend: "fireworks",
-      summary: "Fireworks AI provider is configured. All AI calls must still use strict schemas and safety guards.",
-      configuredEnv,
+      summary: requireAi ? "Fireworks AI provider is configured and AI-required mode is active." : "Fireworks AI provider is configured. All AI calls must still use strict schemas and safety guards.",
+      configuredEnv: allConfiguredEnv,
       missingEnv: []
+    };
+  }
+
+  if (requireAi) {
+    return {
+      state: "misconfigured",
+      backend: "fireworks",
+      summary: "CLINICBRIEF_REQUIRE_AI is true, but Fireworks requires both FIREWORKS_API_KEY and FIREWORKS_MODEL.",
+      configuredEnv: allConfiguredEnv,
+      missingEnv
     };
   }
 

@@ -39,6 +39,11 @@ type GuidedQuestionResponse = {
   complete?: boolean;
 };
 
+type GuidedProfileDraftResponse = {
+  profile: Partial<GuidedProfile>;
+  confidence: number;
+};
+
 const safetyCopy =
   "ClinicBrief organizes information you provide so you can prepare for appointments. It does not diagnose, recommend treatment, or replace medical advice. Review everything before sharing it with a clinician.";
 
@@ -94,10 +99,17 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdCaseId, setCreatedCaseId] = useState<string | null>(null);
+  const [profileDraft, setProfileDraft] = useState("");
+  const [isProfileParsing, setIsProfileParsing] = useState(false);
 
   const speech = useBrowserSpeechToText({
     onTranscript: useCallback((transcript: string) => {
       setCurrentAnswer((current) => `${current}${current ? " " : ""}${transcript}`.trim());
+    }, [])
+  });
+  const profileSpeech = useBrowserSpeechToText({
+    onTranscript: useCallback((transcript: string) => {
+      setProfileDraft((current) => `${current}${current ? " " : ""}${transcript}`.trim());
     }, [])
   });
 
@@ -181,6 +193,47 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
     setQuestion("");
 
     await loadNextQuestion(answer, nextAnswers);
+  }
+
+  async function autofillProfileFromDraft() {
+    const transcript = profileDraft.trim();
+
+    if (!transcript) {
+      setError("Say or type a short introduction before using autofill.");
+      return;
+    }
+
+    setIsProfileParsing(true);
+    setError(null);
+    setStatus("ClinicBrief is filling the basics from your reviewed words...");
+
+    try {
+      const response = await fetch("/api/guided-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript })
+      });
+      const payload = (await response.json()) as ApiResponse<GuidedProfileDraftResponse>;
+
+      if (!payload.ok || !payload.data) {
+        setError(payload.error?.message ?? "ClinicBrief could not autofill the form. You can still fill it manually.");
+        setStatus(null);
+        return;
+      }
+
+      updateProfile({
+        ...payload.data.profile,
+        firstName: payload.data.profile.firstName || profile.firstName,
+        ageRange: payload.data.profile.ageRange || profile.ageRange,
+        basicContext: payload.data.profile.basicContext || profile.basicContext
+      });
+      setStatus(`Autofilled what ClinicBrief could read clearly. Confidence: ${Math.round(payload.data.confidence * 100)}%. Please review before continuing.`);
+    } catch {
+      setError("ClinicBrief could not autofill the form. You can still fill it manually.");
+      setStatus(null);
+    } finally {
+      setIsProfileParsing(false);
+    }
   }
 
   async function createAndAnalyzeCase(event?: FormEvent<HTMLFormElement>) {
@@ -385,6 +438,34 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
 
         {stepIndex === 1 ? (
           <div className="grid gap-4">
+            <div className="grid gap-4 rounded-md border border-cyan-100 bg-clinic-surface p-4">
+              <div className="grid gap-2">
+                <h3 className="text-lg font-semibold text-clinic-ink">Say the basics in one go</h3>
+                <p className="text-sm leading-6 text-clinic-muted">
+                  Optional: say or type something like “My name is Alex, this is for me, I’m an older adult, and I prefer simple language.” ClinicBrief will fill the fields, then you can correct them.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-primary px-4 py-2 font-semibold text-white hover:bg-clinic-primaryDark disabled:opacity-60" disabled={profileSpeech.capability === "unsupported" || profileSpeech.isListening} onClick={profileSpeech.startListening} type="button">
+                  <Mic aria-hidden className="h-5 w-5" />
+                  Speak basics
+                </button>
+                <button className="inline-flex min-h-11 items-center gap-2 rounded-md border border-clinic-line bg-white px-4 py-2 font-semibold text-clinic-ink hover:bg-cyan-50 disabled:opacity-60" disabled={!profileSpeech.isListening} onClick={profileSpeech.stopListening} type="button">
+                  <MicOff aria-hidden className="h-5 w-5" />
+                  Stop
+                </button>
+                <button className="inline-flex min-h-11 items-center gap-2 rounded-md bg-clinic-success px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60" disabled={isProfileParsing || !profileDraft.trim()} onClick={autofillProfileFromDraft} type="button">
+                  {isProfileParsing ? <Loader2 aria-hidden className="h-5 w-5 animate-spin" /> : <Sparkles aria-hidden className="h-5 w-5" />}
+                  Autofill fields
+                </button>
+              </div>
+              {profileSpeech.error ? <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-clinic-warning">{profileSpeech.error}</p> : null}
+              <label className="grid gap-2 text-sm font-medium text-clinic-ink">
+                Reviewed words for autofill
+                <textarea className={`min-h-28 rounded-md border border-clinic-line bg-white p-3 ${textSizeClass} leading-7 text-clinic-ink`} onChange={(event) => setProfileDraft(event.target.value)} placeholder="Type or edit the basics before autofill." value={profileDraft} />
+              </label>
+              <p className="text-sm leading-6 text-clinic-muted">{profileSpeech.capability === "unsupported" ? "Speech recognition is not available in this browser. Typed autofill still works." : "Audio is not stored. Only the reviewed words in this box are sent for autofill."}</p>
+            </div>
             <label className="grid gap-2 text-sm font-medium text-clinic-ink">
               First name
               <input className={`min-h-11 rounded-md border border-clinic-line px-3 ${textSizeClass} text-clinic-ink`} onChange={(event) => updateProfile({ firstName: event.target.value })} placeholder="First name" value={profile.firstName} />

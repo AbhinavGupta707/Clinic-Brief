@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { getFallbackQuestion, getGuidedInterviewQuestion } from "./guided-interviewer";
+import { getFallbackQuestion, getGuidedInterviewQuestion, GuidedAiUnavailableError } from "./guided-interviewer";
 
 describe("guided interviewer", () => {
   it("uses deterministic fallback questions by appointment type when Fireworks is not configured", async () => {
     const originalKey = process.env.FIREWORKS_API_KEY;
     const originalModel = process.env.FIREWORKS_MODEL;
+    const originalRequireAi = process.env.CLINICBRIEF_REQUIRE_AI;
     delete process.env.FIREWORKS_API_KEY;
     delete process.env.FIREWORKS_MODEL;
+    delete process.env.CLINICBRIEF_REQUIRE_AI;
 
     const reply = await getGuidedInterviewQuestion({
       appointmentType: "preop",
@@ -24,6 +26,12 @@ describe("guided interviewer", () => {
       process.env.FIREWORKS_MODEL = originalModel;
     } else {
       delete process.env.FIREWORKS_MODEL;
+    }
+
+    if (originalRequireAi) {
+      process.env.CLINICBRIEF_REQUIRE_AI = originalRequireAi;
+    } else {
+      delete process.env.CLINICBRIEF_REQUIRE_AI;
     }
 
     expect(reply).toEqual({
@@ -54,5 +62,40 @@ describe("guided interviewer", () => {
         previousAnswers: ["I want to organize changes since the last visit."]
       }).question
     ).toBe("What is your usual baseline, in your own words?");
+  });
+
+  it("fails loudly instead of falling back when guided AI is required", async () => {
+    const originalKey = process.env.FIREWORKS_API_KEY;
+    const originalModel = process.env.FIREWORKS_MODEL;
+    const originalRequireAi = process.env.CLINICBRIEF_REQUIRE_AI;
+    delete process.env.FIREWORKS_API_KEY;
+    delete process.env.FIREWORKS_MODEL;
+    process.env.CLINICBRIEF_REQUIRE_AI = "true";
+
+    await expect(
+      getGuidedInterviewQuestion({
+        appointmentType: "upcoming",
+        previousQuestions: [],
+        previousAnswers: []
+      })
+    ).rejects.toBeInstanceOf(GuidedAiUnavailableError);
+
+    if (originalKey) {
+      process.env.FIREWORKS_API_KEY = originalKey;
+    } else {
+      delete process.env.FIREWORKS_API_KEY;
+    }
+
+    if (originalModel) {
+      process.env.FIREWORKS_MODEL = originalModel;
+    } else {
+      delete process.env.FIREWORKS_MODEL;
+    }
+
+    if (originalRequireAi) {
+      process.env.CLINICBRIEF_REQUIRE_AI = originalRequireAi;
+    } else {
+      delete process.env.CLINICBRIEF_REQUIRE_AI;
+    }
   });
 });

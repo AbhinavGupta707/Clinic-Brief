@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@clinicbrief/types";
 import { z } from "zod";
-import { getGuidedInterviewQuestion, type GuidedInterviewQuestion } from "../../../lib/server/guided-interviewer";
+import { getGuidedInterviewQuestion, GuidedAiUnavailableError, type GuidedInterviewQuestion } from "../../../lib/server/guided-interviewer";
 
 const GuidedInterviewRequestSchema = z.object({
   appointmentType: z.enum(["upcoming", "chronic", "symptoms", "preop", "medication"]),
@@ -29,10 +29,36 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const question = await getGuidedInterviewQuestion(parsed.data);
+  try {
+    const question = await getGuidedInterviewQuestion(parsed.data);
 
-  return Response.json({
-    ok: true,
-    data: question
-  } satisfies ApiResponse<GuidedInterviewQuestion>);
+    return Response.json({
+      ok: true,
+      data: question
+    } satisfies ApiResponse<GuidedInterviewQuestion>);
+  } catch (error) {
+    if (error instanceof GuidedAiUnavailableError) {
+      return Response.json(
+        {
+          ok: false,
+          error: {
+            code: "GUIDED_AI_UNAVAILABLE",
+            message: error.message
+          }
+        } satisfies ApiResponse<GuidedInterviewQuestion>,
+        { status: 503 }
+      );
+    }
+
+    return Response.json(
+      {
+        ok: false,
+        error: {
+          code: "GUIDED_INTERVIEW_FAILED",
+          message: "ClinicBrief could not prepare the next guided question."
+        }
+      } satisfies ApiResponse<GuidedInterviewQuestion>,
+      { status: 500 }
+    );
+  }
 }
