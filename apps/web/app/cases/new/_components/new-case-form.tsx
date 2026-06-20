@@ -345,6 +345,7 @@ export function NewCaseForm({ guidedDemo = false }: { guidedDemo?: boolean }) {
                 className={`min-h-11 w-full rounded-md border px-2 py-2 text-sm font-semibold transition ${
                   index === stepIndex ? "border-clinic-primary bg-clinic-surface text-clinic-primary" : index < stepIndex ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-clinic-line bg-white text-clinic-muted"
                 }`}
+                disabled={index > stepIndex || isSubmitting}
                 onClick={() => setStepIndex(index)}
                 type="button"
               >
