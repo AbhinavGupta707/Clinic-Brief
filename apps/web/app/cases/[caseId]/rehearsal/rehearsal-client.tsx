@@ -6,6 +6,14 @@ import { Events, trackEvent } from "@clinicbrief/events";
 import type { ApiResponse, BriefType, MissingQuestion, RehearsalMessageResponse, RehearsalSession } from "@clinicbrief/types";
 import { useBrowserSpeechToText } from "../../../../lib/client/speech";
 
+declare global {
+  interface Window {
+    pendo?: { trackAgent: (eventType: string, metadata: object) => void };
+  }
+}
+
+const PENDO_AGENT_ID = "EPFDltHdy83kchFHgx3H8WdmRfQ";
+
 type Message = {
   role: "assistant" | "user";
   body: string;
@@ -53,6 +61,15 @@ export function RehearsalClient({
     if (payload?.ok && payload.data) {
       setSessionId(payload.data.sessionId);
       setMessages(mapSessionMessages(payload.data.session));
+
+      if (typeof window !== "undefined" && window.pendo?.trackAgent) {
+        window.pendo.trackAgent("agent_response", {
+          agentId: PENDO_AGENT_ID,
+          conversationId: payload.data.sessionId,
+          messageId: crypto.randomUUID(),
+          content: "[rehearsal_greeting]"
+        });
+      }
     }
   }
 
@@ -60,6 +77,16 @@ export function RehearsalClient({
     const answer = draft.trim();
     if (!answer) {
       return;
+    }
+
+    const promptMessageId = crypto.randomUUID();
+    if (typeof window !== "undefined" && window.pendo?.trackAgent) {
+      window.pendo.trackAgent("prompt", {
+        agentId: PENDO_AGENT_ID,
+        conversationId: sessionId ?? caseId,
+        messageId: promptMessageId,
+        content: "[rehearsal_answer]"
+      });
     }
 
     setIsSending(true);
@@ -74,6 +101,15 @@ export function RehearsalClient({
       setSessionId(payload.data.sessionId);
       setMessages(nextMessages);
       setCurrentQuestionIndex(Math.min(nextAnsweredCount, questions.length));
+
+      if (typeof window !== "undefined" && window.pendo?.trackAgent) {
+        window.pendo.trackAgent("agent_response", {
+          agentId: PENDO_AGENT_ID,
+          conversationId: payload.data.sessionId,
+          messageId: crypto.randomUUID(),
+          content: "[rehearsal_feedback]"
+        });
+      }
     } else {
       setMessages((items) => [
         ...items,
